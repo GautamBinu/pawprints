@@ -28,15 +28,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <div style={{ height: '10vh' }}>
-          <Header />
-        </div>
-        <main style={{ height: '65vh' }}>
+        <Header />
+        <main className="flex-1">
           {children}
         </main>
-        <div style={{ height: '25vh' }}>
-          <Footer />
-        </div>
+        <Footer />
       </body>
     </html>
   );

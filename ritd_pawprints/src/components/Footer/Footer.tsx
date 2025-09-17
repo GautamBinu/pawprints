@@ -2,8 +2,8 @@
 
 const Footer = () => {
   return (
-    <footer className="text-white h-full" style={{ backgroundColor: '#000000' }}>
-      <div className="p-24 h-full flex flex-col justify-end">
+    <footer className="text-white mt-auto" style={{ backgroundColor: '#000000' }}>
+      <div className="p-24">
         <div className="flex justify-between items-end">
           <p className="text-xs text-gray-300">
             Copyright © Rochester Institute of Technology. All Rights Reserved.
