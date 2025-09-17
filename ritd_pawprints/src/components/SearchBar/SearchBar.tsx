@@ -1,9 +1,31 @@
 'use client';
 import React, { useState } from 'react';
 
-const SearchBar = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('All');
+interface SearchBarProps {
+  onSearchChange?: (searchTerm: string) => void;
+  onFilterChange?: (filter: string) => void;
+  searchTerm?: string;
+  selectedFilter?: string;
+}
+
+const SearchBar: React.FC<SearchBarProps> = ({ 
+  onSearchChange, 
+  onFilterChange, 
+  searchTerm = '', 
+  selectedFilter = 'All' 
+}) => {
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [localSelectedFilter, setLocalSelectedFilter] = useState(selectedFilter);
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearchTerm(value);
+    onSearchChange?.(value);
+  };
+
+  const handleFilterChange = (value: string) => {
+    setLocalSelectedFilter(value);
+    onFilterChange?.(value);
+  };
 
   return (
     <div className="w-full flex items-center gap-4">
@@ -30,8 +52,8 @@ const SearchBar = () => {
         <input
           type="text"
           placeholder="Search Petitions"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={localSearchTerm}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400"
         />
       </div>
@@ -40,8 +62,8 @@ const SearchBar = () => {
       <div className="relative">
         <div className="flex items-center bg-white border border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
           <select
-            value={selectedFilter}
-            onChange={(e) => setSelectedFilter(e.target.value)}
+            value={localSelectedFilter}
+            onChange={(e) => handleFilterChange(e.target.value)}
             className="appearance-none bg-transparent border-none outline-none text-gray-700 cursor-pointer pr-2"
           >
             <option value="All">All</option>

@@ -45,7 +45,7 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200 h-full flex flex-col">
+    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out h-full flex flex-col cursor-pointer">
       {/* Signatures and status */}
       <div className="mb-3">
         <div className="text-sm text-gray-600 mb-1">

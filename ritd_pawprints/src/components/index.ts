@@ -4,4 +4,5 @@ export { default as SearchBar } from './SearchBar/SearchBar';
 export { default as Nav } from './Header/Nav';
 export { default as PetitionCard } from './PetitionCard/PetitionCard';
 export { default as PetitionGrid } from './PetitionCard/PetitionGrid';
+export { default as SearchResults } from './SearchBar/SearchResults';
 

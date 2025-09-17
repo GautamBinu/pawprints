@@ -1,6 +1,9 @@
-import { SearchBar, PetitionGrid } from "@/components";
+'use client';
+import React, { useState, useMemo, useEffect } from 'react';
+import { SearchBar, PetitionGrid, SearchResults } from "@/components";
+import { useDebounce } from "@/hooks/useDebounce";
 
-const samplePetitions = [
+const allPetitions = [
   {
     id: '1',
     title: 'Move Door Locks On High-Rise Res Halls Inside',
@@ -76,11 +79,62 @@ const samplePetitions = [
 ];
 
 export default function Home() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('All');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Debounce search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+  
+  // Show loading state when search term changes
+  useEffect(() => {
+    if (searchTerm !== debouncedSearchTerm) {
+      setIsLoading(true);
+    } else {
+      setIsLoading(false);
+    }
+  }, [searchTerm, debouncedSearchTerm]);
+
+  // Filter petitions based on debounced search term and selected filter
+  const filteredPetitions = useMemo(() => {
+    if (isLoading) return [];
+    
+    // Show all petitions by default when no search is active
+    if (debouncedSearchTerm === '' && selectedFilter === 'All') {
+      return allPetitions;
+    }
+    
+    return allPetitions.filter(petition => {
+      // Filter by search term (title search)
+      const matchesSearch = debouncedSearchTerm === '' || 
+        petition.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      
+      // Filter by category
+      const matchesFilter = selectedFilter === 'All' || 
+        petition.category.toLowerCase() === selectedFilter.toLowerCase();
+      
+      return matchesSearch && matchesFilter;
+    });
+  }, [debouncedSearchTerm, selectedFilter, isLoading]);
+
   return (
     <div className="w-full flex flex-col px-4 sm:px-8 lg:px-20 py-10" style={{ backgroundColor: '#FFFFFF' }}>
-      <SearchBar />
+      <SearchBar 
+        onSearchChange={setSearchTerm}
+        onFilterChange={setSelectedFilter}
+        searchTerm={searchTerm}
+        selectedFilter={selectedFilter}
+      />
       <div className="flex flex-col mt-8 w-full">
-        <PetitionGrid petitions={samplePetitions} />
+        <SearchResults 
+          isLoading={isLoading}
+          resultsCount={filteredPetitions.length}
+          searchTerm={debouncedSearchTerm}
+          selectedFilter={selectedFilter}
+        />
+        {!isLoading && (
+          <PetitionGrid petitions={filteredPetitions} />
+        )}
       </div>
     </div>
   );
