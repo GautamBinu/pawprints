@@ -3,11 +3,21 @@
 const Footer = () => {
   return (
     <footer className="text-white h-full" style={{ backgroundColor: '#000000' }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-        {/* Empty footer content */}
+      <div className="p-24 h-full flex flex-col justify-end">
+        <div className="flex justify-between items-end">
+          <p className="text-xs text-gray-300">
+            Copyright © Rochester Institute of Technology. All Rights Reserved.
+          </p>
+          <div className="text-xs text-gray-300 text-right">
+            <p>P.O. Box 341055,</p>
+            <p>Dubai Silicon Oasis,</p>
+            <p>Dubai, U.A.E</p>
+          </div>
+        </div>
       </div>
     </footer>
   );
 };
 
 export default Footer;
+
