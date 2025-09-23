@@ -5,7 +5,8 @@ interface PetitionCardProps {
   currentSignatures: number;
   targetSignatures: number;
   category: string;
-  status?: 'active' | 'threshold_met';
+  status?: 'active' | 'in_progress';
+  onClick?: () => void;
 }
 
 const PetitionCard: React.FC<PetitionCardProps> = ({
@@ -13,7 +14,8 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
   currentSignatures,
   targetSignatures,
   category,
-  status = 'active'
+  status = 'active',
+  onClick
 }) => {
   const progressPercentage = Math.min((currentSignatures / targetSignatures) * 100, 100);
   const remainingSignatures = Math.max(targetSignatures - currentSignatures, 0);
@@ -38,18 +40,24 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
   };
 
   const getProgressBarColor = () => {
-    if (status === 'threshold_met') {
+    if (currentSignatures >= targetSignatures) {
       return 'bg-green-500';
     }
     return 'bg-orange-500';
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out h-full flex flex-col cursor-pointer">
+    <div 
+      className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out h-full flex flex-col cursor-pointer"
+      onClick={onClick}
+    >
       {/* Signatures and status */}
       <div className="mb-3">
         <div className="text-sm text-gray-600 mb-1">
-          {currentSignatures} Signatures | <span className="font-bold text-gray-800">{status === 'threshold_met' ? 'Threshold Met' : `Needs ${remainingSignatures} More`}</span>
+          {currentSignatures} Signatures | <span className="font-bold text-gray-800">
+            {currentSignatures >= targetSignatures ? 'Thershold Met' : 
+             `Needs ${remainingSignatures} More`}
+          </span>
         </div>
       </div>
 
