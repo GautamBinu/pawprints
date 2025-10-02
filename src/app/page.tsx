@@ -10,7 +10,11 @@ const allPetitions = [
     currentSignatures: 10,
     targetSignatures: 200,
     category: 'Housing',
-    status: 'active' as const
+    status: 'active' as const,
+    createdDate: '2024-01-15',
+    description: 'The door locks on the high-rise residence halls (Grace Watson, James E. Booth, and George Eastman) are currently located on the outside of the doors. This poses a security risk as anyone can easily unlock the doors from the outside. Moving the locks to the inside of the doors would greatly improve the safety and security of the residents.',
+    author: 'Housing Resident',
+    timePosted: '8 Months Ago'
   },
   {
     id: '2',
@@ -18,7 +22,11 @@ const allPetitions = [
     currentSignatures: 143,
     targetSignatures: 200,
     category: 'Housing',
-    status: 'active' as const
+    status: 'active' as const,
+    createdDate: '2024-03-10',
+    description: 'Mark Ellingson Hall needs air conditioning during the warmer months of April and May when temperatures can become uncomfortable for residents.',
+    author: 'Student Resident',
+    timePosted: '6 Months Ago'
   },
   {
     id: '3',
@@ -26,7 +34,11 @@ const allPetitions = [
     currentSignatures: 71,
     targetSignatures: 200,
     category: 'Campus Life',
-    status: 'active' as const
+    status: 'active' as const,
+    createdDate: '2024-02-20',
+    description: 'Improve meal options and quality at 175 Jefferson dining location.',
+    author: 'Campus Dining Student',
+    timePosted: '7 Months Ago'
   },
   {
     id: '4',
@@ -34,7 +46,11 @@ const allPetitions = [
     currentSignatures: 156,
     targetSignatures: 200,
     category: 'Dining',
-    status: 'active' as const
+    status: 'active' as const,
+    createdDate: '2024-04-01',
+    description: 'Bring back water cups to the Cantina dining location for student convenience.',
+    author: 'Dining Student',
+    timePosted: '5 Months Ago'
   },
   {
     id: '5',
@@ -42,7 +58,11 @@ const allPetitions = [
     currentSignatures: 10,
     targetSignatures: 200,
     category: 'Facilities',
-    status: 'active' as const
+    status: 'active' as const,
+    createdDate: '2024-05-15',
+    description: 'Every classroom should have trash cans for proper waste disposal.',
+    author: 'Student',
+    timePosted: '4 Months Ago'
   },
   {
     id: '6',
@@ -50,7 +70,11 @@ const allPetitions = [
     currentSignatures: 19,
     targetSignatures: 200,
     category: 'Campus Life',
-    status: 'active' as const
+    status: 'active' as const,
+    createdDate: '2024-06-01',
+    description: 'Increase availability of feminine hygiene products in women\'s restrooms across campus.',
+    author: 'Student Advocate',
+    timePosted: '3 Months Ago'
   },
   {
     id: '7',
@@ -58,15 +82,34 @@ const allPetitions = [
     currentSignatures: 42,
     targetSignatures: 200,
     category: 'Campus Life',
-    status: 'active' as const
+    status: 'active' as const,
+    createdDate: '2024-07-10',
+    description: 'Add more accessible outdoor seating areas around campus for students with mobility needs.',
+    author: 'Accessibility Advocate',
+    timePosted: '2 Months Ago'
   },
   {
     id: '8',
     title: 'The Double Standard Of Lowering The US Flag On The RIT Campus',
-    currentSignatures: 220,
-    targetSignatures: 220,
+    currentSignatures: 278,
+    targetSignatures: 200,
     category: 'Governance',
-    status: 'threshold_met' as const
+    status: 'in_progress' as const,
+    createdDate: 'September 12, 2025',
+    description: 'RIT is not acting as a politically neutral campus as they claim to be by showing double standards on the height of the US flag on campus and need to be transparent on the motives of lowering the flag.',
+    author: 'Eva Mattison',
+    timePosted: '11 Days Ago',
+    updates: [
+      {
+        id: 'update1',
+        type: 'OFFICIAL UPDATE' as const,
+        title: 'Hello!',
+        content: 'Thank you all for signing this petition. This Pawprint was charged to the Student Affairs committee on Sep 19, 2025, chaired by Noah Manning (nmmsg@rit.edu). Student Government invites you to attend this committee meeting, which is held weekly on Thursdays 10 AM to 11 AM in the Kathy Hall Conference Room (CPC 1730), attached to the SG office.\n\nWe look forward to meeting you!\n\nAll the best,\nTrishelle Hoopes\nDirector of Student Relations 2025-2026',
+        author: 'Trishelle Hoopes',
+        date: 'September 20, 2025',
+        timePosted: '3 Days Ago'
+      }
+    ]
   },
   {
     id: '9',
@@ -74,7 +117,11 @@ const allPetitions = [
     currentSignatures: 31,
     targetSignatures: 200,
     category: 'Campus Life',
-    status: 'active' as const
+    status: 'active' as const,
+    createdDate: '2024-08-20',
+    description: 'Install swing sets designed for taller individuals on campus recreational areas.',
+    author: 'Tall Student Coalition',
+    timePosted: '1 Month Ago'
   }
 ];
 
