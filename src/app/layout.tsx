@@ -1,7 +1,14 @@
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header, Footer } from "@/components";
 import "./globals.css";
+
+import { getTokens } from "next-firebase-auth-edge";
+import { cookies } from "next/headers";
+import { AuthProvider } from "@/app/auth/AuthProvider";
+import { authConfig } from "./config/server-config";
+import { toUser } from "./shared/user";
+import { Metadata } from "@/app/auth/AuthContext";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,25 +20,25 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "PawPrints - Make Your Mark",
-  description: "Petition for students to bring out student voices on campus",
-};
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const tokens = await getTokens<Metadata>(await cookies(), authConfig);
+  const user = tokens ? toUser(tokens) : null;
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <Header />
-        <main className="flex-1">
-          {children}
-        </main>
+        <AuthProvider user={user}>
+          <main className="flex-1">
+            {children}
+          </main>
+        </AuthProvider>
         <Footer />
       </body>
     </html>

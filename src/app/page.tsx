@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
+import { useAuth } from '@/app/auth/AuthContext';
 import { SearchBar, PetitionGrid, SearchResults } from "@/components";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -126,6 +127,7 @@ const allPetitions = [
 ];
 
 export default function Home() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [isLoading, setIsLoading] = useState(false);
@@ -166,6 +168,11 @@ export default function Home() {
 
   return (
     <div className="w-full flex flex-col px-4 sm:px-8 lg:px-20 py-10" style={{ backgroundColor: '#FFFFFF' }}>
+      {/* Debug: Show user info */}
+      <div className="mb-4 text-sm text-gray-700">
+        <strong>User:</strong> {user ? user.displayName || user.email || user.uid : 'Not signed in'}<br />
+        <strong>PhotoURL:</strong> {user && user.photoURL ? user.photoURL : 'N/A'}
+      </div>
       <SearchBar 
         onSearchChange={setSearchTerm}
         onFilterChange={setSelectedFilter}
