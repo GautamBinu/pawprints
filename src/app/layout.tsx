@@ -33,8 +33,8 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <Header />
         <AuthProvider user={user}>
+          <Header />
           <main className="flex-1">
             {children}
           </main>

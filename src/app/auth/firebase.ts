@@ -5,6 +5,7 @@ import {
   inMemoryPersistence,
   setPersistence,
 } from "firebase/auth";
+import { getFirestore as getFirestoreFromFirebase } from "firebase/firestore";
 import { clientConfig } from "../config/client-config";
 
 export const getFirebaseApp = () => {
@@ -13,6 +14,11 @@ export const getFirebaseApp = () => {
   }
 
   return initializeApp(clientConfig);
+};
+
+export const getFirestore = () => {
+  const app = getFirebaseApp();
+  return getFirestoreFromFirebase(app);
 };
 
 export function getFirebaseAuth() {

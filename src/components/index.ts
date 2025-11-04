@@ -6,4 +6,6 @@ export { default as PetitionCard } from './PetitionCard/PetitionCard';
 export { default as PetitionGrid } from './PetitionCard/PetitionGrid';
 export { default as SearchResults } from './SearchBar/SearchResults';
 export { default as PetitionModal } from './PetitionModal/PetitionModal';
+export { default as PetitionForm } from './PetitionForm/PetitionForm';
+export { default as AdminGuard } from './AdminGuard/AdminGuard';
 

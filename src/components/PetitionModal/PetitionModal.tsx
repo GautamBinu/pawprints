@@ -87,9 +87,10 @@ const PetitionModal: React.FC<PetitionModalProps> = ({ isOpen, onClose, petition
                       <h4 className="font-semibold text-gray-900 mb-3">{update.title}</h4>
                     )}
                     
-                    <div className="text-gray-800 text-sm leading-relaxed mb-3 whitespace-pre-line">
-                      {update.content}
-                    </div>
+                    <div 
+                      className="text-gray-800 text-sm leading-relaxed mb-3 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: update.content }}
+                    />
                     
                     <div className="text-xs text-gray-500 font-medium">
                       {update.author}
@@ -111,9 +112,10 @@ const PetitionModal: React.FC<PetitionModalProps> = ({ isOpen, onClose, petition
                     <span className="text-gray-500 text-xs">{petition.timePosted}</span>
                   </div>
                   
-                  <div className="text-gray-800 text-sm leading-relaxed mb-3">
-                    {petition.description}
-                  </div>
+                  <div 
+                    className="text-gray-800 text-sm leading-relaxed mb-3 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: petition.description }}
+                  />
                   
                   <div className="flex justify-end">
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium border ${categoryColor}`}>

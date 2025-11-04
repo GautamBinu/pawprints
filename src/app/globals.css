@@ -24,3 +24,166 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Quill Editor Styling */
+.petition-editor .ql-container {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  min-height: 300px;
+}
+
+.petition-editor .ql-editor {
+  min-height: 300px;
+  padding: 16px;
+}
+
+.petition-editor .ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+}
+
+.petition-editor .ql-toolbar {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  background-color: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.petition-editor .ql-container {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.petition-editor .ql-toolbar button:hover,
+.petition-editor .ql-toolbar button:focus {
+  color: #f97316;
+}
+
+.petition-editor .ql-toolbar button.ql-active {
+  color: #f97316;
+}
+
+.petition-editor .ql-toolbar .ql-stroke {
+  stroke: #6b7280;
+}
+
+.petition-editor .ql-toolbar button:hover .ql-stroke,
+.petition-editor .ql-toolbar button:focus .ql-stroke {
+  stroke: #f97316;
+}
+
+.petition-editor .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #f97316;
+}
+
+.petition-editor .ql-toolbar .ql-fill {
+  fill: #6b7280;
+}
+
+.petition-editor .ql-toolbar button:hover .ql-fill,
+.petition-editor .ql-toolbar button:focus .ql-fill {
+  fill: #f97316;
+}
+
+.petition-editor .ql-toolbar button.ql-active .ql-fill {
+  fill: #f97316;
+}
+
+/* Petition Description HTML Rendering */
+.prose {
+  max-width: none;
+}
+
+.prose p {
+  margin-bottom: 1em;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+.prose strong,
+.prose b {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.prose em,
+.prose i {
+  font-style: italic;
+}
+
+.prose u {
+  text-decoration: underline;
+}
+
+.prose s,
+.prose strike {
+  text-decoration: line-through;
+}
+
+.prose h1 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  color: #111827;
+}
+
+.prose h2 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  color: #111827;
+}
+
+.prose h3 {
+  font-size: 1.125em;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  color: #111827;
+}
+
+.prose ul,
+.prose ol {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  padding-left: 1.5em;
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ol {
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose a {
+  color: #f97316;
+  text-decoration: underline;
+}
+
+.prose a:hover {
+  color: #ea580c;
+}
+
+/* Quill-specific classes */
+.prose .ql-indent-1 {
+  padding-left: 3em;
+}
+
+.prose .ql-indent-2 {
+  padding-left: 6em;
+}
+
+.prose .ql-indent-3 {
+  padding-left: 9em;
+}

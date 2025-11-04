@@ -43,3 +43,7 @@ next-env.d.ts
 # DO NOT COMMIT THIS
 # FIREBASE SERVICE ACCOUNT CREDENTIALS
 ritd-pawprints-firebase-adminsdk-fbsvc-8dd092f7ca.json
+
+# Claude Sonnet MD files
+*.md
+!README.md
