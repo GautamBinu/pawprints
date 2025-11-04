@@ -16,10 +16,10 @@ const Header = () => {
           {/* Clickable Logo */}
           <Link href="/" className="cursor-pointer ml-4">
             <Image
-              src="RIT-00070A_RGB_TM.svg"
+              src="pawprints-white.svg"
               alt="RIT Paw Logo"
-              width={80}
-              height={100}
+              width={150}
+              height={200}
               className="object-contain hover:opacity-90 transition-opacity"
             />
           </Link>
