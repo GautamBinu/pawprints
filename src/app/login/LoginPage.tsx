@@ -5,6 +5,12 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { getFirebaseAuth } from '@/app/auth/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Label } from '@/components/ui/label';
 
 interface LoginPageProps {
   loginAction: (idToken: string) => Promise<void>;
@@ -50,72 +56,51 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-md p-6 w-full max-w-xs border border-gray-200">
-        {/* Header with RIT Tiger Logo */}
-        <div className="text-center mb-5">
-          <div className="flex justify-center mb-3">
+    <div className="min-h-[80vh] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="space-y-4 flex flex-col items-center text-center pb-2">
+          <div className="relative w-24 h-16">
             <Image
               src="/RIT-00070A_RGB_TM.svg"
               alt="RIT Logo"
-              width={80}
-              height={50}
+              fill
               className="object-contain"
+              priority
             />
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-1">
-            Welcome to PawPrints
-          </h1>
-          <p className="text-gray-600 text-xs">
-            Your voice matters at RIT
-          </p>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm text-center">{error}</p>
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-[#F76902]">PawPrints</CardTitle>
+            <CardDescription>
+              Your voice matters at RIT
+            </CardDescription>
           </div>
-        )}
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit}>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-300 rounded-lg text-sm font-medium transition-all duration-200 ${
-              isLoading
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-white text-gray-700 hover:bg-gray-50 hover:shadow-sm active:bg-gray-100'
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
-          >
-            {isLoading ? (
-              <>
-                <svg
-                  className="animate-spin h-4 w-4 text-gray-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                <span>Logging in...</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
+          <div className="space-y-4">
+            <Label className="text-center w-full text-xs text-muted-foreground">
+              Sign in with your RIT Google account to continue
+            </Label>
+            <Button 
+              variant="outline" 
+              className="w-full h-12 text-base font-medium relative" 
+              onClick={handleSubmit}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
                   <path
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                     fill="#4285F4"
@@ -133,28 +118,36 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
                     fill="#EA4335"
                   />
                 </svg>
-                <span>Log in</span>
-              </>
-            )}
-          </button>
-        </form>
+              )}
+              Login with Google
+            </Button>
+          </div>
 
-        {/* Footer */}
-        <div className="mt-5 text-center space-y-1">
-          <p className="text-xs text-gray-500">
-            By signing in, you agree to use PawPrints responsibly.
-          </p>
-          <p className="text-xs text-gray-400">
-            Need help?{' '}
-            <a
-              href="mailto:support@rit.edu"
-              className="text-orange-600 hover:text-orange-700 font-medium"
-            >
-              Contact RIT Student Government
-            </a>
-          </p>
-        </div>
-      </div>
+          <div className="text-xs text-muted-foreground text-center space-y-4 pt-4">
+            <p>
+              By signing in, you agree to use PawPrints responsibly. You also agree to the{' '}
+              <a 
+                href="https://www.rit.edu/academicaffairs/policiesmanual/c082" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground transition-colors"
+              >
+                RIT Code of Conduct for Computer and Network Use
+              </a>.
+            </p>
+            
+            <Separator className="my-4" />
+            
+            <p className="text-[10px] text-gray-400">
+              This site is protected by reCAPTCHA and the Google{' '}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Privacy Policy</a>{' '}
+              and{' '}
+              <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Terms of Service</a>{' '}
+              apply.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

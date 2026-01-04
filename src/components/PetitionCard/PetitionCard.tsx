@@ -1,13 +1,15 @@
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { PetitionStatus } from '../../types/petition';
 
 interface PetitionCardProps {
   title: string;
   currentSignatures: number;
   targetSignatures: number;
   category: string;
-  status?: 'active' | 'in_progress';
+  status?: number;
+  showStatus?: boolean;
   onClick?: () => void;
 }
 
@@ -16,7 +18,8 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
   currentSignatures,
   targetSignatures,
   category,
-  status = 'active',
+  status,
+  showStatus = false,
   onClick
 }) => {
   const progressPercentage = Math.min((currentSignatures / targetSignatures) * 100, 100);
@@ -48,12 +51,37 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
     return 'bg-orange-500';
   };
 
+  const getStatusConfig = (s?: number) => {
+    if (s === undefined) return null;
+    switch (s) {
+      case PetitionStatus.New:
+        return { label: 'Draft', color: 'bg-gray-100 text-gray-800 border-gray-200' };
+      case PetitionStatus.Published:
+        return { label: 'Published', color: 'bg-green-100 text-green-800 border-green-200' };
+      case PetitionStatus.Removed:
+        return { label: 'Removed', color: 'bg-red-100 text-red-800 border-red-200' };
+      case PetitionStatus.NeedsReview:
+        return { label: 'Under Review', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+      default:
+        return { label: 'Unknown', color: 'bg-gray-100 text-gray-800 border-gray-200' };
+    }
+  };
+
+  const statusConfig = showStatus ? getStatusConfig(status) : null;
+
   return (
     <Card
       className="h-full flex flex-col hover:shadow-lg transition-all duration-300 cursor-pointer relative overflow-hidden"
       onClick={onClick}
     >
-      <CardHeader className="font-mono uppercase">
+      <CardHeader className="font-mono uppercase pb-2">
+        {statusConfig && (
+          <div className="mb-2">
+            <Badge variant="outline" className={`font-normal ${statusConfig.color}`}>
+              {statusConfig.label}
+            </Badge>
+          </div>
+        )}
         <div className="flex justify-between items-center text-sm text-muted-foreground mb-1">
           <span>{currentSignatures} Signatures</span>
           <span className="font-medium text-foreground">

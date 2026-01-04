@@ -7,6 +7,14 @@ import { authConfig } from './config/server-config';
 import { prisma } from '@/lib/prisma';
 import { PetitionStatus, Petition } from '@/types/petition';
 import { z } from 'zod';
+import sanitizeHtml from 'sanitize-html';
+
+const sanitizeOptions = {
+  allowedTags: [ 'b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'u', 's' ],
+  allowedAttributes: {
+    'a': [ 'href', 'target' ]
+  }
+};
 
 export async function getPendingPetitions(): Promise<Petition[]> {
   const tokens = await getTokens(await cookies(), authConfig);
@@ -105,7 +113,7 @@ export async function createPetition(data: {
     throw new Error('Unauthorized');
   }
 
-  // Validation
+  // Validation with Zod
   const schema = z.object({
     title: z.string().min(10).max(150).regex(/^[^<>]*$/, "HTML not allowed in title"),
     description: z.string().min(50),
@@ -138,7 +146,7 @@ export async function createPetition(data: {
   await prisma.petition.create({
     data: {
       title: validatedData.title,
-      description: validatedData.description,
+      description: sanitizeHtml(validatedData.description, sanitizeOptions),
       authorId: userId,
       status: PetitionStatus.New, // 0: Draft
       expires: validatedData.expires
@@ -190,7 +198,7 @@ export async function updatePetition(id: number, data: {
     where: { id },
     data: {
       title: validatedData.title,
-      description: validatedData.description,
+      description: sanitizeHtml(validatedData.description, sanitizeOptions),
       expires: validatedData.expires
         ? new Date(validatedData.expires)
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -477,7 +485,16 @@ export async function getUserProfile() {
   };
 }
 
-// --- Admin / Staff Actions ---
+// Admin/Staff secret stuff lol
+export async function checkAdminAccess() {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) return false;
+  
+  const user = await prisma.user.findUnique({ where: { id: tokens.decodedToken.uid } });
+  if (!user) return false;
+  
+  return user.isStaff || user.isSuperAdmin;
+}
 
 async function checkPermission(userId: string, action: 'add_update' | 'response' | 'mark-in-progress' | 'unpublish' | 'editUpdate' | 'editResponse' | 'approve' | 'reject') {
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -499,13 +516,18 @@ export async function addUpdate(petitionId: number, description: string) {
   if (!tokens) throw new Error('Unauthorized');
   await checkPermission(tokens.decodedToken.uid, 'add_update');
 
-  await prisma.update.create({
+  const update = await prisma.update.create({
     data: {
-      description,
+      description: sanitizeHtml(description, sanitizeOptions),
       petitions: { connect: { id: petitionId } }
     }
   });
   revalidatePath('/', 'layout');
+  return {
+    id: update.id,
+    description: update.description,
+    created_at: update.createdAt.toISOString()
+  };
 }
 
 export async function addResponse(petitionId: number, description: string) {
@@ -517,7 +539,7 @@ export async function addResponse(petitionId: number, description: string) {
   // Create response
   const response = await prisma.response.create({
     data: {
-      description,
+      description: sanitizeHtml(description, sanitizeOptions),
       author: tokens.decodedToken.name || tokens.decodedToken.email || 'Staff',
       petitions: { connect: { id: petitionId } }
     }
@@ -532,6 +554,12 @@ export async function addResponse(petitionId: number, description: string) {
     }
   });
   revalidatePath('/', 'layout');
+  return {
+    id: response.id,
+    description: response.description,
+    created_at: response.createdAt.toISOString(),
+    author: response.author
+  };
 }
 
 export async function markInProgress(petitionId: number, inProgress: boolean) {
@@ -563,11 +591,16 @@ export async function editUpdate(updateId: number, description: string) {
   if (!tokens) throw new Error('Unauthorized');
   await checkPermission(tokens.decodedToken.uid, 'editUpdate');
 
-  await prisma.update.update({
+  const update = await prisma.update.update({
     where: { id: updateId },
-    data: { description }
+    data: { description: sanitizeHtml(description, sanitizeOptions) }
   });
   revalidatePath('/', 'layout');
+  return {
+    id: update.id,
+    description: update.description,
+    created_at: update.createdAt.toISOString()
+  };
 }
 
 export async function editResponse(responseId: number, description: string) {
@@ -575,9 +608,17 @@ export async function editResponse(responseId: number, description: string) {
   if (!tokens) throw new Error('Unauthorized');
   await checkPermission(tokens.decodedToken.uid, 'editResponse');
 
-  await prisma.response.update({
+  const response = await prisma.response.update({
     where: { id: responseId },
-    data: { description }
+    data: { description: sanitizeHtml(description, sanitizeOptions) }
   });
   revalidatePath('/', 'layout');
+  return {
+    id: response.id,
+    description: response.description,
+    created_at: response.createdAt.toISOString(),
+    author: response.author // Note: author might not be on response object if not selected, but prisma update returns the object.
+    // Actually prisma update returns the model. Response model has author.
+    // Broke my head for an hour trying to fix this.
+  };
 }

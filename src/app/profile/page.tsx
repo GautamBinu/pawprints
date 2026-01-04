@@ -131,6 +131,7 @@ function ProfileContent() {
                   petitions={profile.createdPetitions} 
                   onPetitionClick={handlePetitionClick}
                   columns={2}
+                  showStatus={true}
                 />
               ) : (
                 <div className="text-center py-12 text-muted-foreground text-sm">
@@ -145,6 +146,7 @@ function ProfileContent() {
                   petitions={profile.signedPetitions} 
                   onPetitionClick={handlePetitionClick}
                   columns={2}
+                  showStatus={true}
                 />
               ) : (
                 <div className="text-center py-12 text-muted-foreground text-sm">

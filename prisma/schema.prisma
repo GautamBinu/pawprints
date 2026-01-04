@@ -71,6 +71,10 @@ model Petition {
   oldId         String?
   
   reports       Report[]
+
+  @@index([status])
+  @@index([authorId])
+  @@index([createdAt])
 }
 
 model Tag {

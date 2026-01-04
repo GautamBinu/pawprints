@@ -11,6 +11,7 @@ interface PetitionGridProps {
   isLoading?: boolean;
   onPetitionClick: (petition: Petition) => void;
   columns?: 1 | 2 | 3;
+  showStatus?: boolean;
 }
 
 const PetitionCardSkeleton = () => (
@@ -32,7 +33,7 @@ const PetitionCardSkeleton = () => (
   </Card>
 );
 
-const PetitionGrid: React.FC<PetitionGridProps> = ({ petitions, isLoading = false, onPetitionClick, columns = 3 }) => {
+const PetitionGrid: React.FC<PetitionGridProps> = ({ petitions, isLoading = false, onPetitionClick, columns = 3, showStatus = false }) => {
   const gridCols = {
     1: 'grid-cols-1',
     2: 'grid-cols-1 sm:grid-cols-2',
@@ -61,7 +62,8 @@ const PetitionGrid: React.FC<PetitionGridProps> = ({ petitions, isLoading = fals
             currentSignatures={petition.signatures}
             targetSignatures={200}
             category={petition.tags[0]?.name || 'General'}
-            status={petition.in_progress ? 'in_progress' : 'active'}
+            status={petition.status}
+            showStatus={showStatus}
             onClick={() => onPetitionClick(petition)}
           />
         ))}

@@ -3,8 +3,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import ReactQuill from 'react-quill-new';
+import dynamic from 'next/dynamic';
 import 'react-quill-new/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 import { Button } from "@/components/ui/button";
 import {
@@ -68,7 +70,7 @@ const modules = {
 const formats = [
   'header',
   'bold', 'italic', 'underline', 'strike',
-  'list', 'bullet',
+  'list',
   'indent',
   'link'
 ];
@@ -76,7 +78,8 @@ const formats = [
 const formSchema = z.object({
   title: z.string()
     .min(10, 'Title must be at least 10 characters')
-    .max(150, 'Title must be less than 150 characters'),
+    .max(150, 'Title must be less than 150 characters')
+    .regex(/^[^<>]*$/, 'HTML not allowed in title'),
   description: z.string()
     .min(50, 'Description must be at least 50 characters')
     .refine((val) => val !== '<p><br></p>' && val.trim() !== '', 'Description is required'),
