@@ -9,7 +9,7 @@ import { TokenSet } from "next-firebase-auth-edge/auth";
 import { authConfig, serverConfig } from "./app/config/server-config";
 
 const PUBLIC_PATHS = ["/login"];
-const PRIVATE_PATHS = ["/profile", "/new", "/review"];
+const PRIVATE_PATHS = ["/profile", "/create", "/review"];
 
 export async function middleware(request: NextRequest) {
   return authMiddleware(request, {

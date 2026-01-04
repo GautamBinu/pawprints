@@ -1,49 +1,71 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import PetitionCard from './PetitionCard';
-import { PetitionModal } from '../index';
 import { Petition } from '../../types/petition';
+import { Skeleton } from "../ui/skeleton";
+import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 
 interface PetitionGridProps {
   petitions: Petition[];
+  isLoading?: boolean;
+  onPetitionClick: (petition: Petition) => void;
+  columns?: 1 | 2 | 3;
 }
 
-const PetitionGrid: React.FC<PetitionGridProps> = ({ petitions }) => {
-  const [selectedPetition, setSelectedPetition] = useState<Petition | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const PetitionCardSkeleton = () => (
+  <Card className="h-full flex flex-col relative overflow-hidden">
+    <CardHeader className="pb-2">
+      <div className="flex justify-between items-center mb-1">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-32" />
+      </div>
+    </CardHeader>
+    <CardContent className="flex-grow py-2">
+      <Skeleton className="h-7 w-full mb-2" />
+      <Skeleton className="h-7 w-2/3" />
+    </CardContent>
+    <CardFooter className="pb-6 pt-4">
+      <Skeleton className="h-6 w-24 rounded-full" />
+    </CardFooter>
+    <div className="absolute bottom-0 left-0 w-full h-2 bg-muted" />
+  </Card>
+);
 
-  const handlePetitionClick = (petition: Petition) => {
-    setSelectedPetition(petition);
-    setIsModalOpen(true);
-  };
+const PetitionGrid: React.FC<PetitionGridProps> = ({ petitions, isLoading = false, onPetitionClick, columns = 3 }) => {
+  const gridCols = {
+    1: 'grid-cols-1',
+    2: 'grid-cols-1 sm:grid-cols-2',
+    3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+  }[columns];
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedPetition(null);
-  };
+  if (isLoading) {
+    return (
+      <div className="w-full">
+        <div className={`grid ${gridCols} gap-6 auto-rows-fr`}>
+          {[...Array(6)].map((_, i) => (
+            <PetitionCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
+      <div className={`grid ${gridCols} gap-6 auto-rows-fr`}>
         {petitions.map((petition) => (
           <PetitionCard
             key={petition.id}
             title={petition.title}
-            currentSignatures={petition.currentSignatures}
-            targetSignatures={petition.targetSignatures}
-            category={petition.category}
-            status={petition.status}
-            onClick={() => handlePetitionClick(petition)}
+            currentSignatures={petition.signatures}
+            targetSignatures={200}
+            category={petition.tags[0]?.name || 'General'}
+            status={petition.in_progress ? 'in_progress' : 'active'}
+            onClick={() => onPetitionClick(petition)}
           />
         ))}
       </div>
-      
-      <PetitionModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        petition={selectedPetition}
-      />
     </div>
   );
 };

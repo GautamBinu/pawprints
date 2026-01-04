@@ -1,24 +1,42 @@
-export interface PetitionUpdate {
-  id: string;
-  type: 'OFFICIAL UPDATE' | 'GENERAL UPDATE';
-  title?: string;
-  content: string;
+export interface Tag {
+  id: number;
+  name: string;
+}
+
+export interface Response {
+  id: number;
+  description: string;
+  created_at: string;
   author: string;
-  date: string;
-  timePosted: string;
+}
+
+export interface Update {
+  id: number;
+  description: string;
+  created_at: string;
+}
+
+export enum PetitionStatus {
+  New = 0,
+  Published = 1,
+  Removed = 2,
+  NeedsReview = 3,
 }
 
 export interface Petition {
-  id: string;
+  id: number;
   title: string;
   description: string;
+  tags: Tag[];
   author: string;
-  createdDate: string;
-  currentSignatures: number;
-  targetSignatures: number;
-  category: string;
-  status: 'active' | 'in_progress';
-  timePosted: string;
-  expiresDate?: string;
-  updates?: PetitionUpdate[];
+  signatures: number;
+  created_at: string;
+  status: PetitionStatus;
+  expires: string;
+  last_signed: string | null;
+  has_response: boolean;
+  response: Response | null;
+  in_progress: boolean | null;
+  updates: Update[];
+  old_id: string | null;
 }

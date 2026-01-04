@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String     @id // Firebase UID
+  email     String     @unique
+  name      String?
+  displayName String?
+  hasAccess Int        @default(1)
+  isStaff   Boolean    @default(false)
+  isSuperAdmin Boolean @default(false)
+
+  createdPetitions Petition[] @relation("CreatedPetitions")
+  signedPetitions  Petition[] @relation("SignedPetitions")
+  subscriptions    Petition[] @relation("SubscribedPetitions")
+
+  notificationSettings NotificationSettings?
+
+  reports   Report[] 
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model NotificationSettings {
+  id        Int     @id @default(autoincrement())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  
+  update    Boolean @default(true)
+  response  Boolean @default(true)
+  reported  Boolean @default(false)
+  threshold Boolean @default(false)
+}
+
+model GlobalAlert {
+  id      Int     @id @default(autoincrement())
+  active  Boolean @default(true)
+  content String
+}
+
+model Petition {
+  id            Int       @id @default(autoincrement())
+  title         String    @db.VarChar(80)
+  description   String
+  authorId      String
+  author        User      @relation("CreatedPetitions", fields: [authorId], references: [id])
+  signers       User[]    @relation("SignedPetitions")
+  subscribers   User[]    @relation("SubscribedPetitions")
+  signatures    Int       @default(0)
+  createdAt     DateTime  @default(now())
+  status        Int       @default(0) // 0: New, 1: Published, 2: Removed, 3: NeedsReview
+  expires       DateTime
+  lastSigned    DateTime?
+  hasResponse   Boolean   @default(false)
+  
+  responseId    Int?
+  response      Response? @relation(fields: [responseId], references: [id])
+  
+  inProgress    Boolean?  @default(false)
+  updates       Update[]
+  tags          Tag[]
+  oldId         String?
+  
+  reports       Report[]
+}
+
+model Tag {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique @db.VarChar(50)
+  petitions Petition[]
+}
+
+model Response {
+  id          Int      @id @default(autoincrement())
+  description String
+  createdAt   DateTime @default(now())
+  author      String
+  petitions   Petition[]
+}
+
+model Update {
+  id          Int      @id @default(autoincrement())
+  description String
+  createdAt   DateTime @default(now())
+  petitions   Petition[]
+}
+
+model Report {
+  id          Int      @id @default(autoincrement())
+  petitionId  Int
+  petition    Petition @relation(fields: [petitionId], references: [id])
+  reporterId  String
+  reporter    User     @relation(fields: [reporterId], references: [id])
+  reportedAt  DateTime
+  reportedFor String   @default("")
+}

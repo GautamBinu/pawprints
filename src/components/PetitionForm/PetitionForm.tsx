@@ -1,8 +1,29 @@
 'use client';
 
-import { useState } from 'react';
-import ReactQuill from 'react-quill-new'; 
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface PetitionFormData {
   title: string;
@@ -15,6 +36,8 @@ export interface PetitionFormData {
 interface PetitionFormProps {
   onSubmit: (data: PetitionFormData) => void;
   isSubmitting?: boolean;
+  initialValues?: Partial<PetitionFormData>;
+  submitLabel?: string;
 }
 
 const categories = [
@@ -35,8 +58,8 @@ const modules = {
   toolbar: [
     [{ 'header': [1, 2, 3, false] }],
     ['bold', 'italic', 'underline', 'strike'],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    [{ 'indent': '-1'}, { 'indent': '+1' }],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    [{ 'indent': '-1' }, { 'indent': '+1' }],
     ['link'],
     ['clean']
   ],
@@ -50,220 +73,216 @@ const formats = [
   'link'
 ];
 
-export default function PetitionForm({ onSubmit, isSubmitting = false }: PetitionFormProps) {
-  const [formData, setFormData] = useState<PetitionFormData>({
-    title: '',
-    description: '',
-    category: '',
-    targetSignatures: 200, // Fixed value
-    expiresDate: undefined
+const formSchema = z.object({
+  title: z.string()
+    .min(10, 'Title must be at least 10 characters')
+    .max(150, 'Title must be less than 150 characters'),
+  description: z.string()
+    .min(50, 'Description must be at least 50 characters')
+    .refine((val) => val !== '<p><br></p>' && val.trim() !== '', 'Description is required'),
+  category: z.string().min(1, 'Please select a category'),
+  targetSignatures: z.number(),
+  expiresDate: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+export default function PetitionForm({ onSubmit, isSubmitting = false, initialValues, submitLabel = 'Create Petition' }: PetitionFormProps) {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: initialValues?.title || '',
+      description: initialValues?.description || '',
+      category: initialValues?.category || '',
+      targetSignatures: initialValues?.targetSignatures || 200,
+      expiresDate: initialValues?.expiresDate || '',
+    },
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof PetitionFormData, string>>>({});
-
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof PetitionFormData, string>> = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
-    } else if (formData.title.length < 10) {
-      newErrors.title = 'Title must be at least 10 characters';
-    } else if (formData.title.length > 150) {
-      newErrors.title = 'Title must be less than 150 characters';
-    }
-
-    if (!formData.description.trim() || formData.description === '<p><br></p>') {
-      newErrors.description = 'Description is required';
-    } else if (formData.description.length < 50) {
-      newErrors.description = 'Description must be at least 50 characters';
-    }
-
-    if (!formData.category) {
-      newErrors.category = 'Please select a category';
-    }
-
-    // Target signatures is fixed at 200, no validation needed
-
-    if (formData.expiresDate) {
-      const expiryDate = new Date(formData.expiresDate);
+  const handleSubmit = (values: FormValues) => {
+    // Validate expiration date if provided
+    if (values.expiresDate) {
+      const expiryDate = new Date(values.expiresDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (expiryDate < today) {
-        newErrors.expiresDate = 'Expiration date must be in the future';
+        form.setError('expiresDate', {
+          type: 'manual',
+          message: 'Expiration date must be in the future'
+        });
+        return;
       }
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (validateForm()) {
-      onSubmit(formData);
-    }
-  };
-
-  const handleDescriptionChange = (content: string) => {
-    setFormData(prev => ({ ...prev, description: content }));
-    if (errors.description) {
-      setErrors(prev => ({ ...prev, description: undefined }));
-    }
+    // Convert empty string expiresDate to undefined
+    const submissionData: PetitionFormData = {
+      ...values,
+      expiresDate: values.expiresDate || undefined,
+    };
+    onSubmit(submissionData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-      {/* Title Input */}
-      <div className="mb-6">
-        <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2">
-          Petition Title <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          id="title"
-          value={formData.title}
-          onChange={(e) => {
-            setFormData(prev => ({ ...prev, title: e.target.value }));
-            if (errors.title) {
-              setErrors(prev => ({ ...prev, title: undefined }));
-            }
-          }}
-          className={`w-full px-4 py-3 border ${
-            errors.title ? 'border-red-500' : 'border-gray-300'
-          } rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all`}
-          placeholder="Enter a clear and concise title for your petition"
-          maxLength={150}
-          disabled={isSubmitting}
-        />
-        <div className="flex justify-between items-center mt-1">
-          {errors.title && (
-            <span className="text-red-500 text-sm">{errors.title}</span>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 mx-auto">
+
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base font-semibold text-gray-700">
+                Petition Title <span className="text-red-500">*</span>
+              </FormLabel>
+              <FormDescription>
+                Make sure your title is action-oriented and preferably a one-line statement that summarizes your petition.
+              </FormDescription>
+              <FormControl>
+                <Input
+                  placeholder="Enter a clear and concise title for your petition"
+                  disabled={isSubmitting}
+                  className="h-12 text-lg"
+                  {...field}
+                />
+              </FormControl>
+              <div className="flex justify-between items-center">
+                <FormMessage />
+                <span className="text-xs text-gray-500 ml-auto">
+                  {field.value?.length || 0}/150
+                </span>
+              </div>
+            </FormItem>
           )}
-          <span className="text-gray-500 text-sm ml-auto">
-            {formData.title.length}/150
-          </span>
-        </div>
-      </div>
-
-      {/* Category Selection */}
-      <div className="mb-6">
-        <label htmlFor="category" className="block text-sm font-semibold text-gray-700 mb-2">
-          Category <span className="text-red-500">*</span>
-        </label>
-        <select
-          id="category"
-          value={formData.category}
-          onChange={(e) => {
-            setFormData(prev => ({ ...prev, category: e.target.value }));
-            if (errors.category) {
-              setErrors(prev => ({ ...prev, category: undefined }));
-            }
-          }}
-          className={`w-full px-4 py-3 border ${
-            errors.category ? 'border-red-500' : 'border-gray-300'
-          } rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all bg-white`}
-          disabled={isSubmitting}
-        >
-          <option value="">Select a category</option>
-          {categories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
-        {errors.category && (
-          <span className="text-red-500 text-sm mt-1 block">{errors.category}</span>
-        )}
-      </div>
-
-      {/* Description Editor */}
-      <div className="mb-6">
-        <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-2">
-          Description <span className="text-red-500">*</span>
-        </label>
-        <div className={`bg-white rounded-lg border ${
-          errors.description ? 'border-red-500' : 'border-gray-300'
-        } overflow-hidden`}>
-          <ReactQuill
-            theme="snow"
-            value={formData.description}
-            onChange={handleDescriptionChange}
-            modules={modules}
-            formats={formats}
-            placeholder="Provide a detailed description of your petition. Explain what you want to change and why it matters..."
-            className="petition-editor"
-            readOnly={isSubmitting}
-          />
-        </div>
-        {errors.description && (
-          <span className="text-red-500 text-sm mt-1 block">{errors.description}</span>
-        )}
-        <p className="text-gray-500 text-sm mt-2">
-          Minimum 50 characters. Be clear and specific about what you're asking for.
-        </p>
-      </div>
-
-      {/* Expiration Date (Optional) */}
-      <div className="mb-6">
-        <label htmlFor="expiresDate" className="block text-sm font-semibold text-gray-700 mb-2">
-          Expiration Date <span className="text-gray-500 text-xs">(Optional)</span>
-        </label>
-        <input
-          type="date"
-          id="expiresDate"
-          value={formData.expiresDate || ''}
-          onChange={(e) => {
-            setFormData(prev => ({ ...prev, expiresDate: e.target.value || undefined }));
-            if (errors.expiresDate) {
-              setErrors(prev => ({ ...prev, expiresDate: undefined }));
-            }
-          }}
-          className={`w-full px-4 py-3 border ${
-            errors.expiresDate ? 'border-red-500' : 'border-gray-300'
-          } rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all`}
-          min={new Date().toISOString().split('T')[0]}
-          disabled={isSubmitting}
         />
-        {errors.expiresDate && (
-          <span className="text-red-500 text-sm mt-1 block">{errors.expiresDate}</span>
-        )}
-        <p className="text-gray-500 text-sm mt-2">
-          Leave blank for no expiration, or set a deadline for signature collection
-        </p>
-      </div>
 
-      {/* Submit Button */}
-      <div className="flex justify-end gap-4">
-        <button
-          type="button"
-          onClick={() => {
-            setFormData({ title: '', description: '', category: '', targetSignatures: 200, expiresDate: undefined });
-            setErrors({});
-          }}
-          className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={isSubmitting}
-        >
-          Clear Form
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="px-8 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Creating...
-            </>
-          ) : (
-            'Create Petition'
+        <FormField
+          control={form.control}
+          name="category"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base font-semibold text-gray-700">
+                Category <span className="text-red-500">*</span>
+              </FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isSubmitting}
+              >
+                <FormControl>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Tags will help others understand what the petition is about.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
           )}
-        </button>
-      </div>
-    </form>
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base font-semibold text-gray-700">
+                Description <span className="text-red-500">*</span>
+              </FormLabel>
+              <FormControl>
+                <div className="bg-white rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <ReactQuill
+                    theme="snow"
+                    value={field.value}
+                    onChange={field.onChange}
+                    modules={modules}
+                    formats={formats}
+                    placeholder="This is the explanation and reasoning behind your petition. Why should someone sign it? How will it improve the community?"
+                    className="petition-editor min-h-[200px]"
+                    readOnly={isSubmitting}
+                  />
+                </div>
+              </FormControl>
+              <FormDescription>
+                Minimum 50 characters. Be clear and specific about what you're asking for.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Expiration Date (Optional) */}
+        {/* <FormField
+          control={form.control}
+          name="expiresDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base font-semibold text-gray-700">
+                Expiration Date <span className="text-gray-500 text-xs font-normal">(Optional)</span>
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="date"
+                  disabled={isSubmitting}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="h-12"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Leave blank for no expiration, or set a deadline for signature collection
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        /> */}
+
+        <div className="mt-16">
+          <p>Use of this site falls under the <a href="https://www.rit.edu/policies/c082" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline">RIT Code of Conduct for Computer and Network Use</a>.</p><br />
+          <p>
+            When using this service, you agree to sign petitions from only one RIT Computer Account.
+            Should you have access to more than one account, you will only sign from your primary student, faculty, or staff account.
+          </p><br />  
+          <p className="font-bold">Please exercise good judgment when using this service.</p>
+        </div>
+
+        <div className="flex justify-end gap-4 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => form.reset()}
+            disabled={isSubmitting}
+            className="h-12 px-6"
+          >
+            Clear Form
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-12 px-8 bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              submitLabel
+            )}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }

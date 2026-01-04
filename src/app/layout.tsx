@@ -8,6 +8,7 @@ import { AuthProvider } from "@/app/auth/AuthProvider";
 import { authConfig } from "./config/server-config";
 import { toUser } from "./shared/user";
 import { Metadata } from "@/app/auth/AuthContext";
+import { Toaster } from "@/components/ui/sonner";
 
 
 const geistSans = Geist({
@@ -40,6 +41,7 @@ export default async function RootLayout({
           </main>
         </AuthProvider>
         <Footer />
+        <Toaster />
       </body>
     </html>
   );

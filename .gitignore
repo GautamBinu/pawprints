@@ -47,3 +47,4 @@ ritd-pawprints-firebase-adminsdk-fbsvc-8dd092f7ca.json
 # Claude Sonnet MD files
 *.md
 !README.md
+/src/generated/prisma

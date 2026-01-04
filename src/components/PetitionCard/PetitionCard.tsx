@@ -1,4 +1,6 @@
 import React from 'react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
 
 interface PetitionCardProps {
   title: string;
@@ -19,7 +21,7 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
 }) => {
   const progressPercentage = Math.min((currentSignatures / targetSignatures) * 100, 100);
   const remainingSignatures = Math.max(targetSignatures - currentSignatures, 0);
-  
+
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
       case 'housing':
@@ -47,42 +49,36 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
   };
 
   return (
-    <div 
-      className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out h-full flex flex-col cursor-pointer"
+    <Card
+      className="h-full flex flex-col hover:shadow-lg transition-all duration-300 cursor-pointer relative overflow-hidden"
       onClick={onClick}
     >
-      {/* Signatures and status */}
-      <div className="mb-3">
-        <div className="text-sm text-gray-600 mb-1">
-          {currentSignatures} Signatures | <span className="font-bold text-gray-800">
-            {currentSignatures >= targetSignatures ? 'Thershold Met' : 
-             `Needs ${remainingSignatures} More`}
+      <CardHeader className="font-mono uppercase">
+        <div className="flex justify-between items-center text-sm text-muted-foreground mb-1">
+          <span>{currentSignatures} Signatures</span>
+          <span className="font-medium text-foreground">
+            {currentSignatures >= targetSignatures ? 'Threshold Met' : `Needs ${remainingSignatures} More`}
           </span>
         </div>
-      </div>
 
-      {/* Title */}
-      <h3 className="text-lg font-semibold text-gray-900 mb-4 leading-tight flex-grow">
-        {title}
-      </h3>
+      </CardHeader>
 
-      {/* Category tag */}
-      <div className="mb-4">
-        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${getCategoryColor(category)}`}>
+      <CardContent className="flex-grow py-2">
+        <CardTitle className="text-lg leading-tight">{title}</CardTitle>
+      </CardContent>
+
+      <CardFooter className="flex flex-col items-start gap-4 pb-6">
+        <Badge variant="outline" className={`font-normal ${getCategoryColor(category)}`}>
           {category}
-        </span>
+        </Badge>
+      </CardFooter>
+      <div className="absolute bottom-0 left-0 w-full h-2 bg-muted">
+        <div 
+          className={`h-full transition-all duration-300 ${getProgressBarColor()}`}
+          style={{ width: `${progressPercentage}%` }}
+        />
       </div>
-
-      {/* Progress bar */}
-      <div className="w-full mt-auto">
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor()}`}
-            style={{ width: `${progressPercentage}%` }}
-          ></div>
-        </div>
-      </div>
-    </div>
+    </Card>
   );
 };
 
