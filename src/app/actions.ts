@@ -1,30 +1,56 @@
-'use server';
+"use server";
 
-import { cookies } from 'next/headers';
-import { revalidatePath } from 'next/cache';
-import { getTokens } from 'next-firebase-auth-edge';
-import { authConfig } from './config/server-config';
-import { prisma } from '@/lib/prisma';
-import { PetitionStatus, Petition } from '@/types/petition';
-import { z } from 'zod';
-import sanitizeHtml from 'sanitize-html';
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { getTokens } from "next-firebase-auth-edge";
+import { authConfig } from "./config/server-config";
+import { prisma } from "@/lib/prisma";
+import { PetitionStatus, Petition } from "@/types/petition";
+import { z } from "zod";
+import sanitizeHtml from "sanitize-html";
+import {
+  createNotification,
+  notifyPetitionSubscribers,
+  getNotifications as getNotificationsLib,
+  markNotificationRead as markNotificationReadLib,
+  markAllNotificationsRead as markAllNotificationsReadLib,
+  getUnreadNotificationCount as getUnreadNotificationCountLib,
+} from "@/lib/notifications";
 
 const sanitizeOptions = {
-  allowedTags: [ 'b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'u', 's' ],
+  allowedTags: [
+    "b",
+    "i",
+    "em",
+    "strong",
+    "a",
+    "p",
+    "br",
+    "ul",
+    "ol",
+    "li",
+    "h1",
+    "h2",
+    "h3",
+    "u",
+    "s",
+  ],
   allowedAttributes: {
-    'a': [ 'href', 'target' ]
-  }
+    a: ["href", "target"],
+  },
 };
 
 export async function getPendingPetitions(): Promise<Petition[]> {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
 
-  const user = await prisma.user.findUnique({ where: { id: tokens.decodedToken.uid } });
+  const user = await prisma.user.findUnique({
+    where: { id: tokens.decodedToken.uid },
+  });
   if (!user || (!user.isStaff && !user.isSuperAdmin)) {
-    throw new Error('Unauthorized: Insufficient permissions');
+    throw new Error("Unauthorized: Insufficient permissions");
   }
 
   const petitions = await prisma.petition.findMany({
@@ -38,7 +64,7 @@ export async function getPendingPetitions(): Promise<Petition[]> {
       updates: true,
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
   });
 
@@ -54,14 +80,16 @@ export async function getPendingPetitions(): Promise<Petition[]> {
     expires: p.expires.toISOString(),
     last_signed: p.lastSigned?.toISOString() || null,
     has_response: p.hasResponse,
-    response: p.response ? {
-      id: p.response.id,
-      description: p.response.description,
-      created_at: p.response.createdAt.toISOString(),
-      author: p.response.author,
-    } : null,
+    response: p.response
+      ? {
+          id: p.response.id,
+          description: p.response.description,
+          created_at: p.response.createdAt.toISOString(),
+          author: p.response.author,
+        }
+      : null,
     in_progress: p.inProgress,
-    updates: p.updates.map(u => ({
+    updates: p.updates.map((u) => ({
       id: u.id,
       description: u.description,
       created_at: u.createdAt.toISOString(),
@@ -73,33 +101,51 @@ export async function getPendingPetitions(): Promise<Petition[]> {
 export async function approvePetition(id: number) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
-  await checkPermission(tokens.decodedToken.uid, 'approve');
+  await checkPermission(tokens.decodedToken.uid, "approve");
 
-  await prisma.petition.update({
+  const petition = await prisma.petition.update({
     where: { id },
     data: {
       status: PetitionStatus.Published,
     },
   });
-  revalidatePath('/', 'layout');
+
+  await createNotification(
+    petition.authorId,
+    "Petition Approved",
+    `Your petition "${petition.title}" has been approved.`,
+    "SYSTEM",
+    petition.id,
+  );
+
+  revalidatePath("/", "layout");
 }
 
 export async function rejectPetition(id: number) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
-  await checkPermission(tokens.decodedToken.uid, 'reject');
+  await checkPermission(tokens.decodedToken.uid, "reject");
 
-  await prisma.petition.update({
+  const petition = await prisma.petition.update({
     where: { id },
     data: {
       status: PetitionStatus.Removed,
     },
   });
-  revalidatePath('/', 'layout');
+
+  await createNotification(
+    petition.authorId,
+    "Petition Rejected",
+    `Your petition "${petition.title}" has been rejected.`,
+    "SYSTEM",
+    petition.id,
+  );
+
+  revalidatePath("/", "layout");
 }
 
 export async function createPetition(data: {
@@ -110,12 +156,16 @@ export async function createPetition(data: {
 }) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
 
   // Validation with Zod
   const schema = z.object({
-    title: z.string().min(10).max(150).regex(/^[^<>]*$/, "HTML not allowed in title"),
+    title: z
+      .string()
+      .min(10)
+      .max(150)
+      .regex(/^[^<>]*$/, "HTML not allowed in title"),
     description: z.string().min(50),
     tags: z.array(z.string()).min(1, "At least one category is required"),
     expires: z.string().optional(),
@@ -133,13 +183,13 @@ export async function createPetition(data: {
     update: {},
     create: {
       id: userId,
-      email: email || '',
+      email: email || "",
       name: name,
     },
   });
 
   if (user.hasAccess !== 1) {
-    throw new Error('Unauthorized: You do not have access to create petitions');
+    throw new Error("Unauthorized: You do not have access to create petitions");
   }
 
   // Create petition
@@ -160,32 +210,41 @@ export async function createPetition(data: {
       },
     },
   });
-  
-  revalidatePath('/profile');
+
+  revalidatePath("/profile");
 }
 
-export async function updatePetition(id: number, data: {
-  title: string;
-  description: string;
-  tags: string[];
-  expires?: string;
-}) {
+export async function updatePetition(
+  id: number,
+  data: {
+    title: string;
+    description: string;
+    tags: string[];
+    expires?: string;
+  },
+) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
 
   const userId = tokens.decodedToken.uid;
 
   // Check if petition exists and user is author
   const petition = await prisma.petition.findUnique({ where: { id } });
-  if (!petition) throw new Error('Petition not found');
-  if (petition.authorId !== userId) throw new Error('Unauthorized: You can only edit your own petitions');
-  if (petition.status !== PetitionStatus.New) throw new Error('Petition cannot be edited in its current status');
+  if (!petition) throw new Error("Petition not found");
+  if (petition.authorId !== userId)
+    throw new Error("Unauthorized: You can only edit your own petitions");
+  if (petition.status !== PetitionStatus.New)
+    throw new Error("Petition cannot be edited in its current status");
 
   // Validation
   const schema = z.object({
-    title: z.string().min(10).max(150).regex(/^[^<>]*$/, "HTML not allowed in title"),
+    title: z
+      .string()
+      .min(10)
+      .max(150)
+      .regex(/^[^<>]*$/, "HTML not allowed in title"),
     description: z.string().min(50),
     tags: z.array(z.string()).min(1, "At least one category is required"),
     expires: z.string().optional(),
@@ -217,8 +276,8 @@ export async function updatePetition(id: number, data: {
       updates: true,
     },
   });
-  
-  revalidatePath('/', 'layout');
+
+  revalidatePath("/", "layout");
 
   return {
     id: updatedPetition.id,
@@ -232,14 +291,16 @@ export async function updatePetition(id: number, data: {
     expires: updatedPetition.expires.toISOString(),
     last_signed: updatedPetition.lastSigned?.toISOString() || null,
     has_response: updatedPetition.hasResponse,
-    response: updatedPetition.response ? {
-      id: updatedPetition.response.id,
-      description: updatedPetition.response.description,
-      created_at: updatedPetition.response.createdAt.toISOString(),
-      author: updatedPetition.response.author,
-    } : null,
+    response: updatedPetition.response
+      ? {
+          id: updatedPetition.response.id,
+          description: updatedPetition.response.description,
+          created_at: updatedPetition.response.createdAt.toISOString(),
+          author: updatedPetition.response.author,
+        }
+      : null,
     in_progress: updatedPetition.inProgress,
-    updates: updatedPetition.updates.map(u => ({
+    updates: updatedPetition.updates.map((u) => ({
       id: u.id,
       description: u.description,
       created_at: u.createdAt.toISOString(),
@@ -250,33 +311,38 @@ export async function updatePetition(id: number, data: {
 
 export async function publishPetition(petitionId: number) {
   const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error('Unauthorized');
+  if (!tokens) throw new Error("Unauthorized");
   const userId = tokens.decodedToken.uid;
 
-  const petition = await prisma.petition.findUnique({ where: { id: petitionId } });
-  if (!petition) throw new Error('Petition not found');
+  const petition = await prisma.petition.findUnique({
+    where: { id: petitionId },
+  });
+  if (!petition) throw new Error("Petition not found");
 
-  if (petition.authorId !== userId) throw new Error('Unauthorized: You can only publish your own petitions');
-  
+  if (petition.authorId !== userId)
+    throw new Error("Unauthorized: You can only publish your own petitions");
+
   if (petition.status !== PetitionStatus.New) {
-      throw new Error('Petition is not in draft status');
+    throw new Error("Petition is not in draft status");
   }
 
   // Check if user has access
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (user?.hasAccess !== 1) {
-      throw new Error('Unauthorized: You do not have access to publish petitions');
+    throw new Error(
+      "Unauthorized: You do not have access to publish petitions",
+    );
   }
 
   await prisma.petition.update({
     where: { id: petitionId },
-    data: { 
-        status: PetitionStatus.NeedsReview,
-        createdAt: new Date(), // Reset created_at
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Reset expires to 30 days from now
-    }
+    data: {
+      status: PetitionStatus.NeedsReview,
+      createdAt: new Date(), // Reset created_at
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Reset expires to 30 days from now
+    },
   });
-  revalidatePath('/', 'layout');
+  revalidatePath("/", "layout");
 }
 
 export async function getPetitions(): Promise<Petition[]> {
@@ -291,7 +357,7 @@ export async function getPetitions(): Promise<Petition[]> {
       updates: true,
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
   });
 
@@ -307,14 +373,16 @@ export async function getPetitions(): Promise<Petition[]> {
     expires: p.expires.toISOString(),
     last_signed: p.lastSigned?.toISOString() || null,
     has_response: p.hasResponse,
-    response: p.response ? {
-      id: p.response.id,
-      description: p.response.description,
-      created_at: p.response.createdAt.toISOString(),
-      author: p.response.author,
-    } : null,
+    response: p.response
+      ? {
+          id: p.response.id,
+          description: p.response.description,
+          created_at: p.response.createdAt.toISOString(),
+          author: p.response.author,
+        }
+      : null,
     in_progress: p.inProgress,
-    updates: p.updates.map(u => ({
+    updates: p.updates.map((u) => ({
       id: u.id,
       description: u.description,
       created_at: u.createdAt.toISOString(),
@@ -325,7 +393,7 @@ export async function getPetitions(): Promise<Petition[]> {
 
 export async function signPetition(petitionId: number) {
   const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error('Unauthorized');
+  if (!tokens) throw new Error("Unauthorized");
   const userId = tokens.decodedToken.uid;
 
   // Ensure user exists and check access
@@ -334,41 +402,42 @@ export async function signPetition(petitionId: number) {
     update: {},
     create: {
       id: userId,
-      email: tokens.decodedToken.email || '',
+      email: tokens.decodedToken.email || "",
       name: tokens.decodedToken.name || tokens.decodedToken.email,
     },
   });
 
   if (user.hasAccess !== 1) {
-    throw new Error('User does not have access to sign petitions');
+    throw new Error("User does not have access to sign petitions");
   }
 
   const petition = await prisma.petition.findUnique({
     where: { id: petitionId },
-    include: { signers: true }
+    include: { signers: true },
   });
 
-  if (!petition) throw new Error('Petition not found');
-  
+  if (!petition) throw new Error("Petition not found");
+
   // Check status (0: New, 2: Removed)
   if (petition.status === 0 || petition.status === 2) {
-    throw new Error('Petition is not available for signing');
+    throw new Error("Petition is not available for signing");
   }
 
   // Check expiry
   if (petition.expires < new Date()) {
-    throw new Error('Petition has expired');
+    throw new Error("Petition has expired");
   }
 
   // Check response
   if (petition.hasResponse) {
-    throw new Error('Petition has already been responded to');
+    throw new Error("Petition has already been responded to");
   }
 
-  if (petition.authorId === userId) throw new Error('Cannot sign your own petition');
-  
-  const alreadySigned = petition.signers.some(s => s.id === userId);
-  if (alreadySigned) throw new Error('Already signed');
+  if (petition.authorId === userId)
+    throw new Error("Cannot sign your own petition");
+
+  const alreadySigned = petition.signers.some((s) => s.id === userId);
+  if (alreadySigned) throw new Error("Already signed");
 
   await prisma.petition.update({
     where: { id: petitionId },
@@ -376,17 +445,17 @@ export async function signPetition(petitionId: number) {
       signatures: { increment: 1 },
       lastSigned: new Date(),
       signers: {
-        connect: { id: userId }
-      }
-    }
+        connect: { id: userId },
+      },
+    },
   });
-  
-  revalidatePath('/', 'layout');
+
+  revalidatePath("/", "layout");
 }
 
 export async function unsignPetition(petitionId: number) {
   const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error('Unauthorized');
+  if (!tokens) throw new Error("Unauthorized");
   const userId = tokens.decodedToken.uid;
 
   await prisma.petition.update({
@@ -394,12 +463,12 @@ export async function unsignPetition(petitionId: number) {
     data: {
       signatures: { decrement: 1 },
       signers: {
-        disconnect: { id: userId }
-      }
-    }
+        disconnect: { id: userId },
+      },
+    },
   });
-  
-  revalidatePath('/', 'layout');
+
+  revalidatePath("/", "layout");
 }
 
 export async function getPetitionSignatureStatus(petitionId: number) {
@@ -409,20 +478,20 @@ export async function getPetitionSignatureStatus(petitionId: number) {
 
   const petition = await prisma.petition.findUnique({
     where: { id: petitionId },
-    select: { 
+    select: {
       authorId: true,
       signers: {
         where: { id: userId },
-        select: { id: true }
-      }
-    }
+        select: { id: true },
+      },
+    },
   });
 
   if (!petition) return { signed: false, isAuthor: false };
 
   return {
     signed: petition.signers.length > 0,
-    isAuthor: petition.authorId === userId
+    isAuthor: petition.authorId === userId,
   };
 }
 
@@ -436,13 +505,13 @@ export async function getUserProfile() {
     include: {
       createdPetitions: {
         include: { tags: true, author: true, response: true, updates: true },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: "desc" },
       },
       signedPetitions: {
         include: { tags: true, author: true, response: true, updates: true },
-        orderBy: { createdAt: 'desc' }
-      }
-    }
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
 
   if (!user) return null;
@@ -459,12 +528,14 @@ export async function getUserProfile() {
     expires: p.expires.toISOString(),
     last_signed: p.lastSigned?.toISOString() || null,
     has_response: p.hasResponse,
-    response: p.response ? {
-      id: p.response.id,
-      description: p.response.description,
-      created_at: p.response.createdAt.toISOString(),
-      author: p.response.author,
-    } : null,
+    response: p.response
+      ? {
+          id: p.response.id,
+          description: p.response.description,
+          created_at: p.response.createdAt.toISOString(),
+          author: p.response.author,
+        }
+      : null,
     in_progress: p.inProgress,
     updates: p.updates.map((u: any) => ({
       id: u.id,
@@ -476,9 +547,9 @@ export async function getUserProfile() {
 
   return {
     user: {
-        name: user.name,
-        email: user.email,
-        createdAt: user.createdAt.toISOString(),
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt.toISOString(),
     },
     createdPetitions: user.createdPetitions.map(mapPetition),
     signedPetitions: user.signedPetitions.map(mapPetition),
@@ -489,136 +560,254 @@ export async function getUserProfile() {
 export async function checkAdminAccess() {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) return false;
-  
-  const user = await prisma.user.findUnique({ where: { id: tokens.decodedToken.uid } });
+
+  const user = await prisma.user.findUnique({
+    where: { id: tokens.decodedToken.uid },
+  });
   if (!user) return false;
-  
+
   return user.isStaff || user.isSuperAdmin;
 }
 
-async function checkPermission(userId: string, action: 'add_update' | 'response' | 'mark-in-progress' | 'unpublish' | 'editUpdate' | 'editResponse' | 'approve' | 'reject') {
+async function checkPermission(
+  userId: string,
+  action:
+    | "add_update"
+    | "response"
+    | "mark-in-progress"
+    | "unpublish"
+    | "editUpdate"
+    | "editResponse"
+    | "approve"
+    | "reject",
+) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new Error('User not found');
+  if (!user) throw new Error("User not found");
 
   if (user.isSuperAdmin) return true;
 
   if (user.isStaff) {
     // Staff permissions
-    const staffPermissions = ['add_update', 'response', 'mark-in-progress', 'unpublish', 'editUpdate', 'editResponse', 'approve', 'reject'];
+    const staffPermissions = [
+      "add_update",
+      "response",
+      "mark-in-progress",
+      "unpublish",
+      "editUpdate",
+      "editResponse",
+      "approve",
+      "reject",
+    ];
     if (staffPermissions.includes(action)) return true;
   }
 
-  throw new Error('Permission denied');
+  throw new Error("Permission denied");
 }
 
 export async function addUpdate(petitionId: number, description: string) {
   const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error('Unauthorized');
-  await checkPermission(tokens.decodedToken.uid, 'add_update');
+  if (!tokens) throw new Error("Unauthorized");
+  await checkPermission(tokens.decodedToken.uid, "add_update");
 
   const update = await prisma.update.create({
     data: {
       description: sanitizeHtml(description, sanitizeOptions),
-      petitions: { connect: { id: petitionId } }
-    }
+      petitions: { connect: { id: petitionId } },
+    },
   });
-  revalidatePath('/', 'layout');
+
+  const petition = await prisma.petition.findUnique({
+    where: { id: petitionId },
+  });
+
+  if (petition) {
+    await notifyPetitionSubscribers(
+      petitionId,
+      `Update on "${petition.title}"`,
+      "A new update has been posted.",
+      "UPDATE",
+    );
+  }
+
+  revalidatePath("/", "layout");
   return {
     id: update.id,
     description: update.description,
-    created_at: update.createdAt.toISOString()
+    created_at: update.createdAt.toISOString(),
   };
 }
 
 export async function addResponse(petitionId: number, description: string) {
   const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error('Unauthorized');
+  if (!tokens) throw new Error("Unauthorized");
   const userId = tokens.decodedToken.uid;
-  await checkPermission(userId, 'response');
+  await checkPermission(userId, "response");
 
   // Create response
   const response = await prisma.response.create({
     data: {
       description: sanitizeHtml(description, sanitizeOptions),
-      author: tokens.decodedToken.name || tokens.decodedToken.email || 'Staff',
-      petitions: { connect: { id: petitionId } }
-    }
+      author: tokens.decodedToken.name || tokens.decodedToken.email || "Staff",
+      petitions: { connect: { id: petitionId } },
+    },
   });
 
   // Update petition
-  await prisma.petition.update({
+  const petition = await prisma.petition.update({
     where: { id: petitionId },
     data: {
       hasResponse: true,
-      responseId: response.id
-    }
+      responseId: response.id,
+    },
   });
-  revalidatePath('/', 'layout');
+
+  await notifyPetitionSubscribers(
+    petitionId,
+    `Response to "${petition.title}"`,
+    "An official response has been posted.",
+    "RESPONSE",
+  );
+
+  revalidatePath("/", "layout");
   return {
     id: response.id,
     description: response.description,
     created_at: response.createdAt.toISOString(),
-    author: response.author
+    author: response.author,
   };
 }
 
 export async function markInProgress(petitionId: number, inProgress: boolean) {
   const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error('Unauthorized');
-  await checkPermission(tokens.decodedToken.uid, 'mark-in-progress');
+  if (!tokens) throw new Error("Unauthorized");
+  await checkPermission(tokens.decodedToken.uid, "mark-in-progress");
 
   await prisma.petition.update({
     where: { id: petitionId },
-    data: { inProgress }
+    data: { inProgress },
   });
-  revalidatePath('/', 'layout');
+  revalidatePath("/", "layout");
 }
 
 export async function unpublishPetition(petitionId: number) {
   const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error('Unauthorized');
-  await checkPermission(tokens.decodedToken.uid, 'unpublish');
+  if (!tokens) throw new Error("Unauthorized");
+  await checkPermission(tokens.decodedToken.uid, "unpublish");
 
   await prisma.petition.update({
     where: { id: petitionId },
-    data: { status: PetitionStatus.Removed }
+    data: { status: PetitionStatus.Removed },
   });
-  revalidatePath('/', 'layout');
+  revalidatePath("/", "layout");
 }
 
 export async function editUpdate(updateId: number, description: string) {
   const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error('Unauthorized');
-  await checkPermission(tokens.decodedToken.uid, 'editUpdate');
+  if (!tokens) throw new Error("Unauthorized");
+  await checkPermission(tokens.decodedToken.uid, "editUpdate");
 
   const update = await prisma.update.update({
     where: { id: updateId },
-    data: { description: sanitizeHtml(description, sanitizeOptions) }
+    data: { description: sanitizeHtml(description, sanitizeOptions) },
   });
-  revalidatePath('/', 'layout');
+  revalidatePath("/", "layout");
   return {
     id: update.id,
     description: update.description,
-    created_at: update.createdAt.toISOString()
+    created_at: update.createdAt.toISOString(),
   };
 }
 
 export async function editResponse(responseId: number, description: string) {
   const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error('Unauthorized');
-  await checkPermission(tokens.decodedToken.uid, 'editResponse');
+  if (!tokens) throw new Error("Unauthorized");
+  await checkPermission(tokens.decodedToken.uid, "editResponse");
 
   const response = await prisma.response.update({
     where: { id: responseId },
-    data: { description: sanitizeHtml(description, sanitizeOptions) }
+    data: { description: sanitizeHtml(description, sanitizeOptions) },
   });
-  revalidatePath('/', 'layout');
+  revalidatePath("/", "layout");
   return {
     id: response.id,
     description: response.description,
     created_at: response.createdAt.toISOString(),
-    author: response.author // Note: author might not be on response object if not selected, but prisma update returns the object.
+    author: response.author, // Note: author might not be on response object if not selected, but prisma update returns the object.
     // Actually prisma update returns the model. Response model has author.
     // Broke my head for an hour trying to fix this.
   };
+}
+
+export async function getUserNotifications() {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) return [];
+  const userId = tokens.decodedToken.uid;
+  return await getNotificationsLib(userId);
+}
+
+export async function markNotificationAsRead(id: number) {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) throw new Error("Unauthorized");
+
+  const notification = await prisma.notification.findUnique({ where: { id } });
+  if (!notification || notification.userId !== tokens.decodedToken.uid) {
+    throw new Error("Unauthorized");
+  }
+
+  await markNotificationReadLib(id);
+  revalidatePath("/", "layout");
+}
+
+export async function markAllAsRead() {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) throw new Error("Unauthorized");
+  await markAllNotificationsReadLib(tokens.decodedToken.uid);
+  revalidatePath("/", "layout");
+}
+
+export async function getUnreadCount() {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) return 0;
+  return await getUnreadNotificationCountLib(tokens.decodedToken.uid);
+}
+
+export async function getNotificationSettings() {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) throw new Error("Unauthorized");
+
+  const settings = await prisma.notificationSettings.findUnique({
+    where: { userId: tokens.decodedToken.uid },
+  });
+
+  if (!settings) {
+    // Return defaults
+    return {
+      update: true,
+      response: true,
+      reported: false,
+      threshold: false,
+    };
+  }
+
+  return settings;
+}
+
+export async function updateNotificationSettings(settings: {
+  update: boolean;
+  response: boolean;
+  reported: boolean;
+  threshold: boolean;
+}) {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) throw new Error("Unauthorized");
+
+  await prisma.notificationSettings.upsert({
+    where: { userId: tokens.decodedToken.uid },
+    update: settings,
+    create: {
+      userId: tokens.decodedToken.uid,
+      ...settings,
+    },
+  });
+  revalidatePath("/profile");
 }

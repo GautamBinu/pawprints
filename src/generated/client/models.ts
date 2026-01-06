@@ -10,6 +10,7 @@
  */
 export type * from './models/User'
 export type * from './models/NotificationSettings'
+export type * from './models/Notification'
 export type * from './models/GlobalAlert'
 export type * from './models/Petition'
 export type * from './models/Tag'

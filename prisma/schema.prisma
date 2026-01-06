@@ -25,7 +25,8 @@ model User {
 
   notificationSettings NotificationSettings?
 
-  reports   Report[] 
+  reports   Report[]
+  notifications Notification[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -34,11 +35,28 @@ model NotificationSettings {
   id        Int     @id @default(autoincrement())
   userId    String  @unique
   user      User    @relation(fields: [userId], references: [id])
-  
+
   update    Boolean @default(true)
   response  Boolean @default(true)
   reported  Boolean @default(false)
   threshold Boolean @default(false)
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  type      String   // UPDATE, RESPONSE, THRESHOLD, REPORT, SYSTEM
+
+  petitionId Int?
+  petition   Petition? @relation(fields: [petitionId], references: [id])
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }
 
 model GlobalAlert {
@@ -61,16 +79,18 @@ model Petition {
   expires       DateTime
   lastSigned    DateTime?
   hasResponse   Boolean   @default(false)
-  
+
   responseId    Int?
   response      Response? @relation(fields: [responseId], references: [id])
-  
+
   inProgress    Boolean?  @default(false)
   updates       Update[]
   tags          Tag[]
   oldId         String?
-  
+
   reports       Report[]
+
+  notifications Notification[]
 
   @@index([status])
   @@index([authorId])
