@@ -1,11 +1,16 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
-import { useAuth } from '@/app/auth/AuthContext';
-import { SearchBar, PetitionGrid, SearchResults, PetitionModal } from "@/components";
-import { useDebounce } from "@/hooks/useDebounce";
-import { Petition } from '@/types/petition';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import React, { useState, useMemo, useEffect, Suspense } from "react";
+import { useAuth } from "@/app/auth/AuthContext";
+import {
+  SearchBar,
+  PetitionGrid,
+  SearchResults,
+  PetitionModal,
+} from "@/components";
+import { useDebounce } from "@/hooks/use-debounce";
+import { Petition } from "@/types/petition";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 interface HomeClientProps {
   initialPetitions: Petition[];
@@ -13,12 +18,14 @@ interface HomeClientProps {
 
 export default function HomeClient({ initialPetitions }: HomeClientProps) {
   const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('All');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("All");
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [petitions, setPetitions] = useState<Petition[]>(initialPetitions);
-  
-  const [selectedPetition, setSelectedPetition] = useState<Petition | null>(null);
+
+  const [selectedPetition, setSelectedPetition] = useState<Petition | null>(
+    null,
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const searchParams = useSearchParams();
@@ -27,9 +34,9 @@ export default function HomeClient({ initialPetitions }: HomeClientProps) {
 
   // Sync URL to State
   useEffect(() => {
-    const petitionId = searchParams.get('petitionId');
+    const petitionId = searchParams.get("petitionId");
     if (petitionId && petitions.length > 0) {
-      const petition = petitions.find(p => p.id === parseInt(petitionId));
+      const petition = petitions.find((p) => p.id === parseInt(petitionId));
       if (petition) {
         setSelectedPetition(petition);
         setIsModalOpen(true);
@@ -48,14 +55,14 @@ export default function HomeClient({ initialPetitions }: HomeClientProps) {
     setSelectedPetition(petition);
     setIsModalOpen(true);
     const params = new URLSearchParams(searchParams.toString());
-    params.set('petitionId', petition.id.toString());
+    params.set("petitionId", petition.id.toString());
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     const params = new URLSearchParams(searchParams.toString());
-    params.delete('petitionId');
+    params.delete("petitionId");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
     // Delay clearing the selected petition to allow exit animation
     setTimeout(() => setSelectedPetition(null), 300);
@@ -76,25 +83,32 @@ export default function HomeClient({ initialPetitions }: HomeClientProps) {
   // Filter petitions based on debounced search term and selected filter
   const filteredPetitions = useMemo(() => {
     // Show all petitions by default when no search is active
-    if (debouncedSearchTerm === '' && selectedFilter === 'All') {
+    if (debouncedSearchTerm === "" && selectedFilter === "All") {
       return petitions;
     }
 
-    return petitions.filter(petition => {
+    return petitions.filter((petition) => {
       // Filter by search term (title search)
-      const matchesSearch = debouncedSearchTerm === '' ||
-        petition.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      const matchesSearch =
+        debouncedSearchTerm === "" ||
+        petition.title
+          .toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase());
 
       // Filter by category
-      const matchesFilter = selectedFilter === 'All' ||
-        petition.tags.some(tag => tag.name === selectedFilter);
+      const matchesFilter =
+        selectedFilter === "All" ||
+        petition.tags.some((tag) => tag.name === selectedFilter);
 
       return matchesSearch && matchesFilter;
     });
   }, [petitions, debouncedSearchTerm, selectedFilter]);
 
   return (
-    <div className="w-full flex flex-col px-4 sm:px-8 lg:px-20 py-10" style={{ backgroundColor: '#FFFFFF' }}>
+    <div
+      className="w-full flex flex-col px-4 sm:px-8 lg:px-20 py-10"
+      style={{ backgroundColor: "#FFFFFF" }}
+    >
       <SearchBar
         onSearchChange={setSearchTerm}
         onFilterChange={setSelectedFilter}
@@ -108,9 +122,9 @@ export default function HomeClient({ initialPetitions }: HomeClientProps) {
           searchTerm={debouncedSearchTerm}
           selectedFilter={selectedFilter}
         />
-        <PetitionGrid 
-          petitions={filteredPetitions} 
-          isLoading={isSearchLoading} 
+        <PetitionGrid
+          petitions={filteredPetitions}
+          isLoading={isSearchLoading}
           onPetitionClick={handlePetitionClick}
         />
       </div>

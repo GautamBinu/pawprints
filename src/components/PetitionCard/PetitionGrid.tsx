@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import PetitionCard from './PetitionCard';
-import { Petition } from '../../types/petition';
+import React from "react";
+import PetitionCard from "./PetitionCard";
+import { Petition } from "../../types/petition";
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 
@@ -33,11 +33,17 @@ const PetitionCardSkeleton = () => (
   </Card>
 );
 
-const PetitionGrid: React.FC<PetitionGridProps> = ({ petitions, isLoading = false, onPetitionClick, columns = 3, showStatus = false }) => {
+const PetitionGrid: React.FC<PetitionGridProps> = ({
+  petitions,
+  isLoading = false,
+  onPetitionClick,
+  columns = 3,
+  showStatus = false,
+}) => {
   const gridCols = {
-    1: 'grid-cols-1',
-    2: 'grid-cols-1 sm:grid-cols-2',
-    3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+    1: "grid-cols-1",
+    2: "grid-cols-1 sm:grid-cols-2",
+    3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
   }[columns];
 
   if (isLoading) {
@@ -61,7 +67,7 @@ const PetitionGrid: React.FC<PetitionGridProps> = ({ petitions, isLoading = fals
             title={petition.title}
             currentSignatures={petition.signatures}
             targetSignatures={200}
-            category={petition.tags[0]?.name || 'General'}
+            category={petition.tags[0]?.name || "General"}
             status={petition.status}
             showStatus={showStatus}
             onClick={() => onPetitionClick(petition)}

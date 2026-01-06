@@ -1,5 +1,5 @@
-declare module 'react-quill' {
-  import { Component } from 'react';
+declare module "react-quill" {
+  import { Component } from "react";
 
   export interface QuillOptions {
     modules?: any;

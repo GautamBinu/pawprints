@@ -1,5 +1,5 @@
-import React from 'react';
-import Link from 'next/link';
+import React from "react";
+import Link from "next/link";
 
 const Footer = () => {
   return (
@@ -14,20 +14,37 @@ const Footer = () => {
               <Link href="/" className="hover:text-[#F76902] transition-colors">
                 Browse
               </Link>
-              <Link href="/create" className="hover:text-[#F76902] transition-colors">
+              <Link
+                href="/create"
+                className="hover:text-[#F76902] transition-colors"
+              >
                 Create
               </Link>
             </div>
           </div>
 
           <div className="flex gap-4 text-xs text-gray-500">
-            <Link href="#" className="hover:text-gray-700 transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-gray-700 transition-colors">Security</Link>
+            <Link href="#" className="hover:text-gray-700 transition-colors">
+              Privacy
+            </Link>
+            <Link href="#" className="hover:text-gray-700 transition-colors">
+              Security
+            </Link>
             <span className="md:block hidden">•</span>
-            <Link href="https://www.rit.edu/dubai/student-leadership" target="_blank" rel="noopener noreferrer" className="hover:text-[#F76902] transition-colors">
+            <Link
+              href="https://www.rit.edu/dubai/student-leadership"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#F76902] transition-colors"
+            >
               Student Government
             </Link>
-            <Link href="https://www.rit.edu/dubai/about-rit-dubai/policies-and-procedures" target="_blank" rel="noopener noreferrer" className="hover:text-[#F76902] transition-colors">
+            <Link
+              href="https://www.rit.edu/dubai/about-rit-dubai/policies-and-procedures"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#F76902] transition-colors"
+            >
               SG Bylaws
             </Link>
           </div>
@@ -38,5 +55,3 @@ const Footer = () => {
 };
 
 export default Footer;
-
-

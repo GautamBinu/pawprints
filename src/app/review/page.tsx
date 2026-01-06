@@ -74,10 +74,9 @@ export default function ReviewPage() {
   };
 
   const openRejectDialog = (petition: Petition) => {
-    // Keep selectedPetition set
     setRejectReason("");
-    setIsModalOpen(false); // Close the main modal
-    setIsRejectDialogOpen(true); // Open the reject confirmation
+    setIsModalOpen(false);
+    setIsRejectDialogOpen(true);
   };
 
   const handleReject = async () => {

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { AuthContext, User } from './AuthContext';
+import * as React from "react";
+import { AuthContext, User } from "./AuthContext";
 
 export interface AuthProviderProps {
   user: User | null;
@@ -10,11 +10,9 @@ export interface AuthProviderProps {
 
 export const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   user,
-  children
+  children,
 }) => {
   return (
-    <AuthContext.Provider value={{ user }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
+    <AuthContext.Provider value={{ user }}>{children}</AuthContext.Provider>
+  );
+};

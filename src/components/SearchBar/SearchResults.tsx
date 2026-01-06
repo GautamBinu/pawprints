@@ -1,5 +1,5 @@
-import { CircleX } from 'lucide-react';
-import React from 'react';
+import { CircleX } from "lucide-react";
+import React from "react";
 
 interface SearchResultsProps {
   isLoading: boolean;
@@ -12,9 +12,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   isLoading,
   resultsCount,
   searchTerm,
-  selectedFilter
+  selectedFilter,
 }) => {
-  const hasActiveSearch = searchTerm.trim() !== '' || selectedFilter !== 'All';
+  const hasActiveSearch = searchTerm.trim() !== "" || selectedFilter !== "All";
 
   if (isLoading) {
     return null;
@@ -43,12 +43,20 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   return (
     <div className="mb-6">
       <p className="text-gray-600 text-sm">
-        Found <span className="font-semibold text-gray-800">{resultsCount}</span> petition{resultsCount !== 1 ? 's' : ''}
+        Found{" "}
+        <span className="font-semibold text-gray-800">{resultsCount}</span>{" "}
+        petition{resultsCount !== 1 ? "s" : ""}
         {searchTerm && (
-          <span> matching "<span className="font-medium">{searchTerm}</span>"</span>
+          <span>
+            {" "}
+            matching "<span className="font-medium">{searchTerm}</span>"
+          </span>
         )}
-        {selectedFilter !== 'All' && (
-          <span> in <span className="font-medium">{selectedFilter}</span></span>
+        {selectedFilter !== "All" && (
+          <span>
+            {" "}
+            in <span className="font-medium">{selectedFilter}</span>
+          </span>
         )}
       </p>
     </div>

@@ -10,7 +10,6 @@ import { toUser } from "./shared/user";
 import { Metadata } from "@/app/auth/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -36,9 +35,7 @@ export default async function RootLayout({
       >
         <AuthProvider user={user}>
           <Header />
-          <main className="flex-1">
-            {children}
-          </main>
+          <main className="flex-1">{children}</main>
         </AuthProvider>
         <Footer />
         <Toaster />

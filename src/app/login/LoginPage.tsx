@@ -1,16 +1,23 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useState } from 'react';
-import Image from 'next/image';
-import { getFirebaseAuth } from '@/app/auth/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import * as React from "react";
+import { useState } from "react";
+import Image from "next/image";
+import { getFirebaseAuth } from "@/app/auth/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Label } from '@/components/ui/label';
+import { Label } from "@/components/ui/label";
 
 interface LoginPageProps {
   loginAction: (idToken: string) => Promise<void>;
@@ -29,12 +36,12 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
     try {
       const auth = getFirebaseAuth();
       const provider = new GoogleAuthProvider();
-      
+
       // Configure Google Auth provider
       provider.setCustomParameters({
-        prompt: 'select_account'
+        prompt: "select_account",
       });
-      
+
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       const idToken = await user.getIdToken();
@@ -42,13 +49,13 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
     } catch (error: any) {
       console.log(error.message);
       console.log(typeof error);
-      
+
       if (error?.message === "NEXT_REDIRECT") {
         // Ignore, this is expected for Next.js redirects
         return;
       } else {
-        console.error('Login error:', error);
-        setError(error.message || 'An error occurred during login');
+        console.error("Login error:", error);
+        setError(error.message || "An error occurred during login");
       }
     } finally {
       setIsLoading(false);
@@ -69,21 +76,19 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
             />
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-[#F76902]">PawPrints</CardTitle>
-            <CardDescription>
-              Your voice matters at RIT
-            </CardDescription>
+            <CardTitle className="text-2xl font-bold text-[#F76902]">
+              PawPrints
+            </CardTitle>
+            <CardDescription>Your voice matters at RIT</CardDescription>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-4">
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
-              <AlertDescription>
-                {error}
-              </AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
@@ -91,9 +96,9 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
             <Label className="text-center w-full text-xs text-muted-foreground">
               Sign in with your RIT Google account to continue
             </Label>
-            <Button 
-              variant="outline" 
-              className="w-full h-12 text-base font-medium relative" 
+            <Button
+              variant="outline"
+              className="w-full h-12 text-base font-medium relative"
               onClick={handleSubmit}
               disabled={isLoading}
             >
@@ -125,24 +130,40 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
 
           <div className="text-xs text-muted-foreground text-center space-y-4 pt-4">
             <p>
-              By signing in, you agree to use PawPrints responsibly. You also agree to the{' '}
-              <a 
-                href="https://www.rit.edu/academicaffairs/policiesmanual/c082" 
-                target="_blank" 
+              By signing in, you agree to use PawPrints responsibly. You also
+              agree to the{" "}
+              <a
+                href="https://www.rit.edu/academicaffairs/policiesmanual/c082"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-foreground transition-colors"
               >
                 RIT Code of Conduct for Computer and Network Use
-              </a>.
+              </a>
+              .
             </p>
-            
+
             <Separator className="my-4" />
-            
+
             <p className="text-[10px] text-gray-400">
-              This site is protected by reCAPTCHA and the Google{' '}
-              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Privacy Policy</a>{' '}
-              and{' '}
-              <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Terms of Service</a>{' '}
+              This site is protected by reCAPTCHA and the Google{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-gray-600"
+              >
+                Privacy Policy
+              </a>{" "}
+              and{" "}
+              <a
+                href="https://policies.google.com/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-gray-600"
+              >
+                Terms of Service
+              </a>{" "}
               apply.
             </p>
           </div>

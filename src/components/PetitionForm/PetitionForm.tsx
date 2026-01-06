@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import dynamic from 'next/dynamic';
-import 'react-quill-new/dist/quill.snow.css';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css";
 
-const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,62 +43,75 @@ interface PetitionFormProps {
 }
 
 const categories = [
-  'Academic Affairs',
-  'Campus Life',
-  'Facilities',
-  'Student Services',
-  'Dining',
-  'Housing',
-  'Sustainability',
-  'Parking & Transportation',
-  'Technology',
-  'Health & Wellness',
-  'Other'
+  "Academic Affairs",
+  "Campus Life",
+  "Facilities",
+  "Student Services",
+  "Dining",
+  "Housing",
+  "Sustainability",
+  "Parking & Transportation",
+  "Technology",
+  "Health & Wellness",
+  "Other",
 ];
 
 const modules = {
   toolbar: [
-    [{ 'header': [1, 2, 3, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-    [{ 'indent': '-1' }, { 'indent': '+1' }],
-    ['link'],
-    ['clean']
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    [{ indent: "-1" }, { indent: "+1" }],
+    ["link"],
+    ["clean"],
   ],
 };
 
 const formats = [
-  'header',
-  'bold', 'italic', 'underline', 'strike',
-  'list',
-  'indent',
-  'link'
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "list",
+  "indent",
+  "link",
 ];
 
 const formSchema = z.object({
-  title: z.string()
-    .min(10, 'Title must be at least 10 characters')
-    .max(150, 'Title must be less than 150 characters')
-    .regex(/^[^<>]*$/, 'HTML not allowed in title'),
-  description: z.string()
-    .min(50, 'Description must be at least 50 characters')
-    .refine((val) => val !== '<p><br></p>' && val.trim() !== '', 'Description is required'),
-  category: z.string().min(1, 'Please select a category'),
+  title: z
+    .string()
+    .min(10, "Title must be at least 10 characters")
+    .max(150, "Title must be less than 150 characters")
+    .regex(/^[^<>]*$/, "HTML not allowed in title"),
+  description: z
+    .string()
+    .min(50, "Description must be at least 50 characters")
+    .refine(
+      (val) => val !== "<p><br></p>" && val.trim() !== "",
+      "Description is required",
+    ),
+  category: z.string().min(1, "Please select a category"),
   targetSignatures: z.number(),
   expiresDate: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function PetitionForm({ onSubmit, isSubmitting = false, initialValues, submitLabel = 'Create Petition' }: PetitionFormProps) {
+export default function PetitionForm({
+  onSubmit,
+  isSubmitting = false,
+  initialValues,
+  submitLabel = "Create Petition",
+}: PetitionFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: initialValues?.title || '',
-      description: initialValues?.description || '',
-      category: initialValues?.category || '',
+      title: initialValues?.title || "",
+      description: initialValues?.description || "",
+      category: initialValues?.category || "",
       targetSignatures: initialValues?.targetSignatures || 200,
-      expiresDate: initialValues?.expiresDate || '',
+      expiresDate: initialValues?.expiresDate || "",
     },
   });
 
@@ -109,9 +122,9 @@ export default function PetitionForm({ onSubmit, isSubmitting = false, initialVa
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (expiryDate < today) {
-        form.setError('expiresDate', {
-          type: 'manual',
-          message: 'Expiration date must be in the future'
+        form.setError("expiresDate", {
+          type: "manual",
+          message: "Expiration date must be in the future",
         });
         return;
       }
@@ -127,8 +140,10 @@ export default function PetitionForm({ onSubmit, isSubmitting = false, initialVa
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 mx-auto">
-
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="space-y-8 mx-auto"
+      >
         <FormField
           control={form.control}
           name="title"
@@ -138,7 +153,8 @@ export default function PetitionForm({ onSubmit, isSubmitting = false, initialVa
                 Petition Title <span className="text-red-500">*</span>
               </FormLabel>
               <FormDescription>
-                Make sure your title is action-oriented and preferably a one-line statement that summarizes your petition.
+                Make sure your title is action-oriented and preferably a
+                one-line statement that summarizes your petition.
               </FormDescription>
               <FormControl>
                 <Input
@@ -215,7 +231,8 @@ export default function PetitionForm({ onSubmit, isSubmitting = false, initialVa
                 </div>
               </FormControl>
               <FormDescription>
-                Minimum 50 characters. Be clear and specific about what you're asking for.
+                Minimum 50 characters. Be clear and specific about what you're
+                asking for.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -249,12 +266,29 @@ export default function PetitionForm({ onSubmit, isSubmitting = false, initialVa
         /> */}
 
         <div className="mt-16">
-          <p>Use of this site falls under the <a href="https://www.rit.edu/policies/c082" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline">RIT Code of Conduct for Computer and Network Use</a>.</p><br />
           <p>
-            When using this service, you agree to sign petitions from only one RIT Computer Account.
-            Should you have access to more than one account, you will only sign from your primary student, faculty, or staff account.
-          </p><br />  
-          <p className="font-bold">Please exercise good judgment when using this service.</p>
+            Use of this site falls under the{" "}
+            <a
+              href="https://www.rit.edu/policies/c082"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-500 hover:underline"
+            >
+              RIT Code of Conduct for Computer and Network Use
+            </a>
+            .
+          </p>
+          <br />
+          <p>
+            When using this service, you agree to sign petitions from only one
+            RIT Computer Account. Should you have access to more than one
+            account, you will only sign from your primary student, faculty, or
+            staff account.
+          </p>
+          <br />
+          <p className="font-bold">
+            Please exercise good judgment when using this service.
+          </p>
         </div>
 
         <div className="flex justify-end gap-4 pt-4">
@@ -274,9 +308,25 @@ export default function PetitionForm({ onSubmit, isSubmitting = false, initialVa
           >
             {isSubmitting ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Processing...
               </>

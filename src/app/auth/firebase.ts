@@ -36,9 +36,9 @@ export function getFirebaseAuth() {
       `http://${process.env.NEXT_PUBLIC_AUTH_EMULATOR_HOST}`,
       {
         disableWarnings: true,
-      }
+      },
     );
   }
-  
+
   return auth;
 }
