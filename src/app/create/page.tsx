@@ -72,7 +72,7 @@ export default function New() {
                 instead. Student Government reserves the right to edit or remove
                 any petition at any time for violating the Code of Conduct. This
                 includes, but is not limited to, creating an intimidating,
-                hostile or abusive environment for any member of the RIT
+                hostile, or abusive environment for any member of the RIT
                 community, or posting of any obscene, defamatory, threatening,
                 or otherwise harassing petitions.
               </p>

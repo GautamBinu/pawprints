@@ -52,7 +52,7 @@ const Header = () => {
                     "bg-transparent text-white hover:bg-white/20 hover:text-white focus:bg-white/20 focus:text-white data-[active]:bg-white/20 data-[state=open]:bg-white/20",
                   )}
                 >
-                  <Link href="#">About</Link>
+                  <Link href="/about">About</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
