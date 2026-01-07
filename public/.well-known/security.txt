@@ -1,0 +1,4 @@
+Contact: mailto:khaleel@mail.rit.edu
+Contact: mailto:sgdubaipres@rit.edu
+Contact: mailto:sgdubaitech@rit.edu
+Preferred-Languages: en

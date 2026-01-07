@@ -11,6 +11,7 @@ import {
 import { useDebounce } from "@/hooks/use-debounce";
 import { Petition } from "@/types/petition";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { toast } from "sonner";
 
 interface HomeClientProps {
   initialPetitions: Petition[];
@@ -34,7 +35,7 @@ export default function HomeClient({ initialPetitions }: HomeClientProps) {
 
   // Sync URL to State
   useEffect(() => {
-    const petitionId = searchParams.get("petitionId");
+    const petitionId = searchParams.get("petitionId") || searchParams.get("p");
     if (petitionId && petitions.length > 0) {
       const petition = petitions.find((p) => p.id === parseInt(petitionId));
       if (petition) {
@@ -44,24 +45,31 @@ export default function HomeClient({ initialPetitions }: HomeClientProps) {
         // Petition not found (invalid ID or not published)
         setIsModalOpen(false);
         setSelectedPetition(null);
+        toast.error("Petition not found");
+
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("petitionId");
+        params.delete("p");
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
       }
     } else if (!petitionId) {
       setIsModalOpen(false);
       setSelectedPetition(null);
     }
-  }, [searchParams, petitions]);
+  }, [searchParams, petitions, router, pathname]);
 
   const handlePetitionClick = (petition: Petition) => {
     setSelectedPetition(petition);
     setIsModalOpen(true);
     const params = new URLSearchParams(searchParams.toString());
-    params.set("petitionId", petition.id.toString());
+    params.set("p", petition.id.toString());
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("p");
     params.delete("petitionId");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
     // Delay clearing the selected petition to allow exit animation
@@ -105,10 +113,7 @@ export default function HomeClient({ initialPetitions }: HomeClientProps) {
   }, [petitions, debouncedSearchTerm, selectedFilter]);
 
   return (
-    <div
-      className="w-full flex flex-col px-4 sm:px-8 lg:px-20 py-10"
-      style={{ backgroundColor: "#FFFFFF" }}
-    >
+    <div className="w-full flex flex-col px-4 sm:px-8 lg:px-20 py-10 bg-background text-foreground">
       <SearchBar
         onSearchChange={setSearchTerm}
         onFilterChange={setSelectedFilter}

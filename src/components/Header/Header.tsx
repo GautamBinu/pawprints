@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Menu } from "lucide-react";
 import { NotificationBell } from "../Notifications/NotificationBell";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const Header = () => {
   const { user } = useAuth();
@@ -80,6 +81,8 @@ const Header = () => {
             </NavigationMenuList>
           </NavigationMenu>
 
+          <ModeToggle />
+
           {user ? (
             <>
               <NotificationBell />
@@ -107,6 +110,7 @@ const Header = () => {
         </div>
 
         <div className="md:hidden flex items-center gap-4">
+          <ModeToggle />
           {user && (
             <>
               <NotificationBell />

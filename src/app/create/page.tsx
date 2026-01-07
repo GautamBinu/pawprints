@@ -38,34 +38,34 @@ export default function New() {
   };
 
   return (
-    <div className="min-h-screen text-black">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="mb-8">
-          <h1 className="text-orange-500 font-bold text-4xl mb-2">
+          <h1 className="text-primary font-bold text-4xl mb-2">
             Create a Petition
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-muted-foreground text-lg">
             Make your voice heard. Start a petition to bring about positive
             change at RIT.
           </p>
         </div>
 
-        <div className="bg-white">
-          <p className="mb-6 text-gray-600">
+        <div>
+          <p className="mb-6 text-muted-foreground">
             Below, fill out each field and your changes will be automatically
             saved.
           </p>
 
           <div className="grid gap-6 md:grid-cols-1 mb-8">
             <div>
-              <p className="text-gray-600 font-bold">
+              <p className="text-muted-foreground font-bold">
                 Please remember, if this petition is about another person,
                 staff, or faculty member, talk to Student Affairs or{" "}
                 <a
                   href="https://www.rit.edu/dubai/incident-report"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-orange-500 hover:underline"
+                  className="text-primary hover:underline"
                 >
                   report an incident
                 </a>{" "}

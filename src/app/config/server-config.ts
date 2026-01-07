@@ -1,8 +1,10 @@
 import { TokenSet } from "next-firebase-auth-edge/auth";
 import { clientConfig } from "./client-config";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const serverConfig = {
-  useSecureCookies: process.env.USE_SECURE_COOKIES === "true",
+  useSecureCookies: process.env.USE_SECURE_COOKIES === "true" || isProduction,
   firebaseApiKey: process.env.FIREBASE_API_KEY!,
   serviceAccount: process.env.FIREBASE_ADMIN_PRIVATE_KEY
     ? {
@@ -27,7 +29,7 @@ export const authConfig = {
     path: "/",
     httpOnly: true,
     secure: serverConfig.useSecureCookies, // Set this to true on HTTPS environments
-    sameSite: "lax" as const,
+    sameSite: isProduction ? "strict" : "lax",
     maxAge: 12 * 60 * 60 * 24, // twelve days
   },
   serviceAccount: serverConfig.serviceAccount,

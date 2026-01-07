@@ -162,7 +162,7 @@ export const NotificationBell = () => {
                       </p>
                       {notification.petition && (
                         <Link
-                          href={`/?petitionId=${notification.petition.id}`}
+                          href={`/?p=${notification.petition.id}`}
                           className="text-xs text-primary hover:underline inline-block mt-1"
                           onClick={() => {
                             if (!notification.read) {

@@ -32,6 +32,7 @@ import {
   Loader2,
   LinkIcon,
   X,
+  Share2,
 } from "lucide-react";
 import { useMediaQuery } from "../../hooks/use-media-query";
 import { useAuth } from "../../app/auth/AuthContext";
@@ -358,10 +359,10 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
   const renderDescription = () => (
     <div id="description" className="space-y-2 scroll-mt-4">
       <h3 className="text-lg font-semibold">Description</h3>
-      <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-900/10 rounded-md shadow-none">
+      <Card className="border-orange-200 bg-orange-50/50 dark:border-orange-900/50 dark:bg-orange-900/10 rounded-md shadow-none">
         <CardContent className="p-y-1">
           <div
-            className="text-foreground text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
+            className="text-foreground text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert [&_h1]:!text-foreground [&_h2]:!text-foreground [&_h3]:!text-foreground [&_p]:!text-foreground [&_strong]:!text-foreground [&_li]:!text-foreground"
             dangerouslySetInnerHTML={{ __html: petition.description }}
           />
 
@@ -607,9 +608,26 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
   };
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/?petitionId=${petition.id}`;
+    const url = `${window.location.origin}/p/${petition.id}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copied to clipboard");
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/p/${petition.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: petition.title,
+          text: `Vote for ${petition.title} on PawPrints`,
+          url,
+        });
+      } catch (error) {
+        console.error("Error sharing", error);
+      }
+    } else {
+      handleCopyLink();
+    }
   };
 
   const PetitionSidebar = ({ mobile = false }: { mobile?: boolean }) => {
@@ -620,15 +638,29 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
             <h4 className="text-sm font-medium text-muted-foreground">
               Status
             </h4>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={handleCopyLink}
-              title="Copy Link"
-            >
-              <LinkIcon className="h-3 w-3" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {mobile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs gap-2"
+                  onClick={handleShare}
+                >
+                  <Share2 className="h-3 w-3" />
+                  Share
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs gap-2"
+                onClick={handleCopyLink}
+                title="Copy Link"
+              >
+                <LinkIcon className="h-3 w-3" />
+                Copy link
+              </Button>
+            </div>
           </div>
           <Badge
             variant="outline"
@@ -685,14 +717,14 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
               {petition.response && (
                 <Button
                   variant="ghost"
-                  className="w-full justify-between h-auto py-1 px-0 text-sm font-normal text-green-600 hover:text-green-700 hover:bg-transparent hover:underline"
+                  className="w-full justify-between h-auto py-1 px-0 text-sm font-normal text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-transparent hover:underline"
                   onClick={() => scrollToSection("response")}
                 >
                   <div className="flex items-center gap-2">
                     <CheckCircle2Icon className="h-4 w-4" />
                     <span>Official Response</span>
                   </div>
-                  <span className="text-xs text-green-600/80 font-mono">
+                  <span className="text-xs text-green-600/80 dark:text-green-400/80 font-mono">
                     {new Date(petition.response.created_at).toLocaleDateString(
                       undefined,
                       { month: "short", day: "numeric", year: "numeric" },

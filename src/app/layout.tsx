@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import { Header, Footer } from "@/components";
 import "./globals.css";
 
@@ -9,6 +10,7 @@ import { authConfig } from "./config/server-config";
 import { toUser } from "./shared/user";
 import { Metadata } from "@/app/auth/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,16 +31,19 @@ export default async function RootLayout({
   const user = tokens ? toUser(tokens) : null;
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <AuthProvider user={user}>
-          <Header />
-          <main className="flex-1">{children}</main>
-        </AuthProvider>
-        <Footer />
-        <Toaster />
+        <NextTopLoader color="var(--foreground)" showSpinner={false} />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AuthProvider user={user}>
+            <Header />
+            <main className="flex-1">{children}</main>
+          </AuthProvider>
+          <Footer />
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

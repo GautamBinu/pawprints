@@ -3,11 +3,11 @@ import Link from "next/link";
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-50 text-gray-600 mt-24 border-t border-gray-200">
+    <footer className="bg-muted text-muted-foreground mt-24 border-t border-border">
       <div className="container mx-auto px-6 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-sm">
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               © {new Date().getFullYear()} RIT Dubai Student Government
             </p>
             <div className="flex gap-4 text-xs">
@@ -23,11 +23,17 @@ const Footer = () => {
             </div>
           </div>
 
-          <div className="flex gap-4 text-xs text-gray-500">
-            <Link href="#" className="hover:text-gray-700 transition-colors">
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <Link
+              href="/privacy"
+              className="hover:text-foreground transition-colors"
+            >
               Privacy
             </Link>
-            <Link href="#" className="hover:text-gray-700 transition-colors">
+            <Link
+              href="/.well-known/security.txt"
+              className="hover:text-foreground transition-colors"
+            >
               Security
             </Link>
             <span className="md:block hidden">•</span>

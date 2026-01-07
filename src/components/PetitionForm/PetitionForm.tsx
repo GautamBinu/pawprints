@@ -149,8 +149,8 @@ export default function PetitionForm({
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-base font-semibold text-gray-700">
-                Petition Title <span className="text-red-500">*</span>
+              <FormLabel className="text-base font-semibold text-foreground">
+                Petition Title <span className="text-destructive">*</span>
               </FormLabel>
               <FormDescription>
                 Make sure your title is action-oriented and preferably a
@@ -166,7 +166,7 @@ export default function PetitionForm({
               </FormControl>
               <div className="flex justify-between items-center">
                 <FormMessage />
-                <span className="text-xs text-gray-500 ml-auto">
+                <span className="text-xs text-muted-foreground ml-auto">
                   {field.value?.length || 0}/150
                 </span>
               </div>
@@ -179,8 +179,8 @@ export default function PetitionForm({
           name="category"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-base font-semibold text-gray-700">
-                Category <span className="text-red-500">*</span>
+              <FormLabel className="text-base font-semibold text-foreground">
+                Category <span className="text-destructive">*</span>
               </FormLabel>
               <Select
                 onValueChange={field.onChange}
@@ -213,11 +213,11 @@ export default function PetitionForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-base font-semibold text-gray-700">
-                Description <span className="text-red-500">*</span>
+              <FormLabel className="text-base font-semibold text-foreground">
+                Description <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <div className="bg-white rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                <div className="bg-background rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
                   <ReactQuill
                     theme="snow"
                     value={field.value}
@@ -272,7 +272,7 @@ export default function PetitionForm({
               href="https://www.rit.edu/policies/c082"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-orange-500 hover:underline"
+              className="text-primary hover:underline"
             >
               RIT Code of Conduct for Computer and Network Use
             </a>
@@ -304,7 +304,7 @@ export default function PetitionForm({
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="h-12 px-8 bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+            className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
           >
             {isSubmitting ? (
               <>

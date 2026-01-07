@@ -159,7 +159,6 @@ export async function createPetition(data: {
     throw new Error("Unauthorized");
   }
 
-  // Validation with Zod
   const schema = z.object({
     title: z
       .string()
@@ -177,7 +176,6 @@ export async function createPetition(data: {
   const email = tokens.decodedToken.email;
   const name = tokens.decodedToken.name || email;
 
-  // Ensure user exists
   const user = await prisma.user.upsert({
     where: { id: userId },
     update: {},
@@ -192,7 +190,6 @@ export async function createPetition(data: {
     throw new Error("Unauthorized: You do not have access to create petitions");
   }
 
-  // Create petition
   await prisma.petition.create({
     data: {
       title: validatedData.title,
@@ -230,7 +227,6 @@ export async function updatePetition(
 
   const userId = tokens.decodedToken.uid;
 
-  // Check if petition exists and user is author
   const petition = await prisma.petition.findUnique({ where: { id } });
   if (!petition) throw new Error("Petition not found");
   if (petition.authorId !== userId)
@@ -238,7 +234,6 @@ export async function updatePetition(
   if (petition.status !== PetitionStatus.New)
     throw new Error("Petition cannot be edited in its current status");
 
-  // Validation
   const schema = z.object({
     title: z
       .string()
@@ -252,7 +247,6 @@ export async function updatePetition(
 
   const validatedData = schema.parse(data);
 
-  // Update petition
   const updatedPetition = await prisma.petition.update({
     where: { id },
     data: {
@@ -262,7 +256,7 @@ export async function updatePetition(
         ? new Date(validatedData.expires)
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       tags: {
-        set: [], // Clear existing tags
+        set: [],
         connectOrCreate: validatedData.tags.map((tag) => ({
           where: { name: tag },
           create: { name: tag },
@@ -326,7 +320,6 @@ export async function publishPetition(petitionId: number) {
     throw new Error("Petition is not in draft status");
   }
 
-  // Check if user has access
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (user?.hasAccess !== 1) {
     throw new Error(
@@ -396,7 +389,6 @@ export async function signPetition(petitionId: number) {
   if (!tokens) throw new Error("Unauthorized");
   const userId = tokens.decodedToken.uid;
 
-  // Ensure user exists and check access
   const user = await prisma.user.upsert({
     where: { id: userId },
     update: {},
@@ -423,12 +415,10 @@ export async function signPetition(petitionId: number) {
     throw new Error("Petition is not available for signing");
   }
 
-  // Check expiry
   if (petition.expires < new Date()) {
     throw new Error("Petition has expired");
   }
 
-  // Check response
   if (petition.hasResponse) {
     throw new Error("Petition has already been responded to");
   }
@@ -609,6 +599,12 @@ export async function addUpdate(petitionId: number, description: string) {
   if (!tokens) throw new Error("Unauthorized");
   await checkPermission(tokens.decodedToken.uid, "add_update");
 
+  const schema = z.object({
+    petitionId: z.number(),
+    description: z.string().min(1, "Description cannot be empty"),
+  });
+  schema.parse({ petitionId, description });
+
   const update = await prisma.update.create({
     data: {
       description: sanitizeHtml(description, sanitizeOptions),
@@ -643,7 +639,12 @@ export async function addResponse(petitionId: number, description: string) {
   const userId = tokens.decodedToken.uid;
   await checkPermission(userId, "response");
 
-  // Create response
+  const schema = z.object({
+    petitionId: z.number(),
+    description: z.string().min(1, "Description cannot be empty"),
+  });
+  schema.parse({ petitionId, description });
+
   const response = await prisma.response.create({
     data: {
       description: sanitizeHtml(description, sanitizeOptions),
@@ -652,7 +653,6 @@ export async function addResponse(petitionId: number, description: string) {
     },
   });
 
-  // Update petition
   const petition = await prisma.petition.update({
     where: { id: petitionId },
     data: {
@@ -682,6 +682,12 @@ export async function markInProgress(petitionId: number, inProgress: boolean) {
   if (!tokens) throw new Error("Unauthorized");
   await checkPermission(tokens.decodedToken.uid, "mark-in-progress");
 
+  const schema = z.object({
+    petitionId: z.number(),
+    inProgress: z.boolean(),
+  });
+  schema.parse({ petitionId, inProgress });
+
   await prisma.petition.update({
     where: { id: petitionId },
     data: { inProgress },
@@ -694,6 +700,11 @@ export async function unpublishPetition(petitionId: number) {
   if (!tokens) throw new Error("Unauthorized");
   await checkPermission(tokens.decodedToken.uid, "unpublish");
 
+  const schema = z.object({
+    petitionId: z.number(),
+  });
+  schema.parse({ petitionId });
+
   await prisma.petition.update({
     where: { id: petitionId },
     data: { status: PetitionStatus.Removed },
@@ -705,6 +716,12 @@ export async function editUpdate(updateId: number, description: string) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) throw new Error("Unauthorized");
   await checkPermission(tokens.decodedToken.uid, "editUpdate");
+
+  const schema = z.object({
+    updateId: z.number(),
+    description: z.string().min(1, "Description cannot be empty"),
+  });
+  schema.parse({ updateId, description });
 
   const update = await prisma.update.update({
     where: { id: updateId },
@@ -722,6 +739,12 @@ export async function editResponse(responseId: number, description: string) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) throw new Error("Unauthorized");
   await checkPermission(tokens.decodedToken.uid, "editResponse");
+
+  const schema = z.object({
+    responseId: z.number(),
+    description: z.string().min(1, "Description cannot be empty"),
+  });
+  schema.parse({ responseId, description });
 
   const response = await prisma.response.update({
     where: { id: responseId },
@@ -780,7 +803,6 @@ export async function getNotificationSettings() {
   });
 
   if (!settings) {
-    // Return defaults
     return {
       update: true,
       response: true,

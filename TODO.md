@@ -1,0 +1,22 @@
+- [ ] Canonical URL redirect to petition ID
+- [X] About page
+- [X] robots, security, privacy, canonical pages
+- [ ] Known bug: copy link does not work on mobile
+- [ ] Share link button on mobile devices
+- [ ] Petition page by itself /p/<petition-id>
+- [ ] Petition threshold 300?
+- [ ] Petition expiry date 1 year?
+- [ ] Staff perms confirmed?
+- [X] In-app notifications
+- [ ] Native push notifications
+- [ ] Emails
+  - [ ] pawprints rit email (sgdubaitech)
+  - [ ] pawprints ritdubai mail server
+- [ ] Prod PostgreSQL database
+- [ ] PWA?
+- [ ] Code docs
+- [ ] Application hosting
+- [ ] Shibboleth?
+- [ ] Umami analytics
+- [X] Dark mode
+- [ ] More filters for petitions, especially by response, update, and date status

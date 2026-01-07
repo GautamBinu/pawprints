@@ -2,18 +2,18 @@ import { Separator } from "@/components/ui/separator";
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen text-black">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <h1 className="text-orange-500 font-bold text-4xl mb-8">
+        <h1 className="text-primary font-bold text-4xl mb-8">
           About PawPrints
         </h1>
-        <div>
+        <div className="text-lg">
           <p>
             Inspired by RIT's original{" "}
             <a
               href="https://pawprints.rit.edu"
               target="_blank"
-              className="text-orange-500 hover:underline"
+              className="text-primary hover:underline"
             >
               PawPrints
             </a>
@@ -26,13 +26,13 @@ export default function AboutPage() {
             <a
               href="https://github.com/https://github.com/SG-RIT-Dubai/pawprints"
               target="_blank"
-              className="text-orange-500 hover:underline"
+              className="text-primary hover:underline"
             >
               GitHub
             </a>
             .
           </p>
-          <Separator className="my-4" />
+          <Separator className="my-8" />
           <div className="mt-6">
             <h3 className="text-xl font-bold mb-2">Have an idea</h3>
 
@@ -43,7 +43,7 @@ export default function AboutPage() {
               signatures for receiving an official Student Government response.
             </p>
 
-            <h3 className="text-xl font-bold mt-4 mb-2">Write your petition</h3>
+            <h3 className="text-xl font-bold mt-8 mb-2">Write your petition</h3>
 
             <p>
               Use proper spelling and grammar when writing your petition. This
@@ -51,7 +51,7 @@ export default function AboutPage() {
               review our Moderation Policy before posting.
             </p>
 
-            <h3 className="text-xl font-bold mt-4 mb-2">Share your petition</h3>
+            <h3 className="text-xl font-bold mt-8 mb-2">Share your petition</h3>
 
             <p>
               Use social media to spread awareness of your issue. A petition has
@@ -59,14 +59,14 @@ export default function AboutPage() {
               then the petition is archived and available via the search.
             </p>
           </div>
-          <Separator className="my-4" />
+          <Separator className="my-8" />
           <p className="mt-6">
             Use of this site falls under the{" "}
             <a
               href="https://www.rit.edu/policies/c082"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-orange-500 hover:underline"
+              className="text-primary hover:underline"
             >
               RIT Code of Conduct for Computer and Network Use
             </a>
@@ -83,15 +83,15 @@ export default function AboutPage() {
           <p className="font-bold">
             Please exercise good judgment when using this service.
           </p>
-          <p className="mt-6">
-            <p className="text-gray-600">
+          <div className="mt-6">
+            <p className="text-muted-foreground">
               Please remember, if this petition is about another person, staff,
               or faculty member, talk to Student Affairs or{" "}
               <a
                 href="https://www.rit.edu/dubai/incident-report"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-orange-500 hover:underline"
+                className="text-primary hover:underline"
               >
                 report an incident
               </a>{" "}
@@ -102,7 +102,7 @@ export default function AboutPage() {
               community, or posting of any obscene, defamatory, threatening, or
               otherwise harassing petitions.
             </p>
-          </p>
+          </div>
         </div>
       </div>
     </div>
