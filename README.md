@@ -2,7 +2,7 @@
 
 PawPrints is a petition platform built for the RIT Dubai community (based on the actual PawPrints) to bridge the gap between students and administration. It allows users to create, sign, and track petitions that matter to campus life. This project is built using **Next.js 15**, utilizing **PostgreSQL** for data persistence and **Firebase** for authentication.
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -89,7 +89,7 @@ npx prisma migrate reset
 ## Firebase Setup
 
 ### Authentication
-PawPrints uses **Firebase** to authenticate users. You must the Google provider in your Firebase Console. Make sure to restrict the OAuth redirect domains to your development and production URLs. To make sure only RIT users can login, we also make sure the Google Cloud Project associated with the Firebase project only allows users from the same organization (g.rit.edu) to sign in. Checkout this [StackOverflow thread](https://stackoverflow.com/questions/64765394/how-can-i-enable-the-internal-option-in-the-oauth-consent-screen) on how to do that.
+PawPrints uses **Firebase** to authenticate users. You must use the Google provider in your Firebase Console. Make sure to restrict the OAuth redirect domains to your development and production URLs. To make sure only RIT users can login, we also make sure the Google Cloud Project associated with the Firebase project only allows users from the same organization (g.rit.edu) to sign in. Checkout this [StackOverflow thread](https://stackoverflow.com/questions/64765394/how-can-i-enable-the-internal-option-in-the-oauth-consent-screen) on how to do that.
 
 ## UI & Theming
 

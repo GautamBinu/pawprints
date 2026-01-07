@@ -2,8 +2,8 @@
 - [X] About page
 - [X] robots, security, privacy, canonical pages
 - [ ] Known bug: copy link does not work on mobile
-- [ ] Share link button on mobile devices
-- [ ] Petition page by itself /p/<petition-id>
+- [X] Share link button on mobile devices
+- [X] Petition page by itself /p/<petition-id>
 - [ ] Petition threshold 300?
 - [ ] Petition expiry date 1 year?
 - [ ] Staff perms confirmed?
@@ -16,7 +16,15 @@
 - [ ] PWA?
 - [ ] Code docs
 - [ ] Application hosting
-- [ ] Shibboleth?
 - [ ] Umami analytics
 - [X] Dark mode
 - [ ] More filters for petitions, especially by response, update, and date status
+- [ ] Google login with redirect instead of popup
+- [ ] Fully gated, main page only for signed-in users
+- [ ] Change pawprints logos
+- [ ] Support images in Quill
+- [ ] Only draft if quit creation
+- [ ] Dashboard for editing responses and updates
+- [ ] Delete published petiton for admins
+- [ ] Colored backgrounds for petitions in dark mode
+- [ ] Move repo to GitHub org
