@@ -21,6 +21,7 @@ export enum PetitionStatus {
   Published = 1,
   Removed = 2,
   NeedsReview = 3,
+  Returned = 4,
 }
 
 export interface Petition {

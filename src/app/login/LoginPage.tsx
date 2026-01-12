@@ -10,7 +10,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -42,10 +41,14 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
         prompt: "select_account",
       });
 
+      // Note: its either this or signInWithRedirect
+      // signInWithPopup has issues with some browsers, especially on mobile
+      // But signInWithRedirect requires additional handling after redirect
+      // Especially on storage partitioned browsers
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      const idToken = await user.getIdToken();
-      await loginAction(idToken);
+      const idToken = await user?.getIdToken();
+      await loginAction(idToken!);
     } catch (error: any) {
       console.log(error.message);
       console.log(typeof error);
@@ -66,7 +69,7 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
     <div className="min-h-[80vh] flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-4 flex flex-col items-center text-center pb-2">
-          <div className="relative w-24 h-16">
+          <div className="hidden relative w-24 h-16">
             <Image
               src="/RIT-00070A_RGB_TM.svg"
               alt="RIT Logo"

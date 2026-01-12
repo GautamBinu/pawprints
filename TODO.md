@@ -4,9 +4,9 @@
 - [ ] Fix: copy link does not work on mobile
 - [X] Share link button on mobile devices
 - [X] Petition page by itself /p/<petition-id>
-- [ ] Petition threshold 300?
-  - [ ] Change to 150
-- [ ] Petition expiry date 1 year?
+- [X] Petition threshold 300?
+  - [X] Change to 150
+- [ ] Petition expiry date 6 months
 - [ ] Staff perms confirmed?
 - [X] In-app notifications
 - [ ] Native push notifications
@@ -23,13 +23,11 @@
 - [ ] Fix: logout page
 - [ ] Fix: mobile responsiveness for some pages
 - [ ] Fully gated, main page only for signed-in users
-- [ ] Change pawprints logos
 - [ ] Support images in Quill
 - [ ] Only draft if quit creation
 - [ ] Dashboard for editing responses and updates
 - [ ] Delete published petiton for admins
 - [ ] Fix: Colored backgrounds for petitions in dark mode
-- [ ] Move repo to GitHub org
 - [ ] Lifecycle changes
   - [ ] Petition draft auto-delete after 7 days
   - [ ] Reject petition with request for review
@@ -38,3 +36,12 @@
 - [ ] Fix: show petition status on cards too maybe?
 - [ ] Change spinner to something more aesthetic?
 - [ ] Big feat: reports
+
+---
+
+- [ ] Media campaign
+- [ ] Logo
+  - [ ] Change pawprints logos
+- [ ] Move repo to GitHub org
+- [ ] rit email (sgdubaitech)
+- [ ] budget

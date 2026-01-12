@@ -153,7 +153,7 @@ const Header = () => {
                   About
                 </Link>
                 <Link
-                  href="/"
+                  href="/browse"
                   className="text-lg font-medium hover:text-[#F76902] transition-colors"
                 >
                   Browse

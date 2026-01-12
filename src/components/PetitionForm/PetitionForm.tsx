@@ -1,7 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { UseFormReturn } from "react-hook-form";
 import * as z from "zod";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
@@ -9,6 +8,7 @@ import "react-quill-new/dist/quill.snow.css";
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Form,
   FormControl,
@@ -36,10 +36,12 @@ export interface PetitionFormData {
 }
 
 interface PetitionFormProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: UseFormReturn<any>;
   onSubmit: (data: PetitionFormData) => void;
   isSubmitting?: boolean;
-  initialValues?: Partial<PetitionFormData>;
   submitLabel?: string;
+  children?: React.ReactNode;
 }
 
 const categories = [
@@ -62,7 +64,7 @@ const modules = {
     ["bold", "italic", "underline", "strike"],
     [{ list: "ordered" }, { list: "bullet" }],
     [{ indent: "-1" }, { indent: "+1" }],
-    ["link"],
+    ["link", "image"],
     ["clean"],
   ],
 };
@@ -76,9 +78,10 @@ const formats = [
   "list",
   "indent",
   "link",
+  "image",
 ];
 
-const formSchema = z.object({
+export const formSchema = z.object({
   title: z
     .string()
     .min(10, "Title must be at least 10 characters")
@@ -96,25 +99,15 @@ const formSchema = z.object({
   expiresDate: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+export type FormValues = z.infer<typeof formSchema>;
 
 export default function PetitionForm({
+  form,
   onSubmit,
   isSubmitting = false,
-  initialValues,
   submitLabel = "Create Petition",
+  children,
 }: PetitionFormProps) {
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: initialValues?.title || "",
-      description: initialValues?.description || "",
-      category: initialValues?.category || "",
-      targetSignatures: initialValues?.targetSignatures || 200,
-      expiresDate: initialValues?.expiresDate || "",
-    },
-  });
-
   const handleSubmit = (values: FormValues) => {
     // Validate expiration date if provided
     if (values.expiresDate) {
@@ -239,7 +232,6 @@ export default function PetitionForm({
           )}
         />
 
-        {/* Expiration Date (Optional) */}
         {/* <FormField
           control={form.control}
           name="expiresDate"
@@ -291,50 +283,28 @@ export default function PetitionForm({
           </p>
         </div>
 
-        <div className="flex justify-end gap-4 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => form.reset()}
-            disabled={isSubmitting}
-            className="h-12 px-6"
-          >
-            Clear Form
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-          >
-            {isSubmitting ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Processing...
-              </>
-            ) : (
-              submitLabel
-            )}
-          </Button>
-        </div>
+        {children ? (
+          children
+        ) : (
+          <div className="flex justify-end gap-4 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => form.reset()}
+              disabled={isSubmitting}
+              className="h-12 px-6"
+            >
+              Clear Form
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+            >
+              {isSubmitting ? <Spinner /> : submitLabel}
+            </Button>
+          </div>
+        )}
       </form>
     </Form>
   );

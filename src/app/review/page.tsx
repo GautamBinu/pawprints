@@ -2,39 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { Petition } from "@/types/petition";
-import {
-  getPendingPetitions,
-  approvePetition,
-  rejectPetition,
-} from "@/app/actions";
+import { getPendingPetitions } from "@/app/actions";
 import AdminGuard from "@/components/AdminGuard/AdminGuard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PetitionGrid from "@/components/PetitionCard/PetitionGrid";
-import PetitionModal from "@/components/PetitionModal/PetitionModal";
+import { useRouter } from "next/navigation";
 
 export default function ReviewPage() {
   const [pendingPetitions, setPendingPetitions] = useState<Petition[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState<number | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [selectedPetition, setSelectedPetition] = useState<Petition | null>(
-    null,
-  );
-  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     loadPetitions();
@@ -53,59 +33,7 @@ export default function ReviewPage() {
   };
 
   const handlePetitionClick = (petition: Petition) => {
-    setSelectedPetition(petition);
-    setIsModalOpen(true);
-  };
-
-  const handleApprove = async (petition: Petition) => {
-    setProcessing(petition.id);
-    setIsModalOpen(false); // Close modal immediately or wait? Better to close.
-    try {
-      await approvePetition(petition.id);
-      setPendingPetitions((prev) => prev.filter((p) => p.id !== petition.id));
-      toast.success(`Petition "${petition.title}" approved and published!`);
-    } catch (error) {
-      console.error("Error approving petition:", error);
-      toast.error("Failed to approve petition");
-    } finally {
-      setProcessing(null);
-      setSelectedPetition(null);
-    }
-  };
-
-  const openRejectDialog = (petition: Petition) => {
-    setRejectReason("");
-    setIsModalOpen(false);
-    setIsRejectDialogOpen(true);
-  };
-
-  const handleReject = async () => {
-    if (!selectedPetition) return;
-
-    setProcessing(selectedPetition.id);
-    setIsRejectDialogOpen(false);
-
-    try {
-      // Note: The backend action doesn't currently accept a reason,
-      // but we could log it or send an email in the future.
-      console.log(
-        `Rejecting petition ${selectedPetition.id} with reason: ${rejectReason}`,
-      );
-
-      await rejectPetition(selectedPetition.id);
-      setPendingPetitions((prev) =>
-        prev.filter((p) => p.id !== selectedPetition.id),
-      );
-      toast.success(
-        `Petition "${selectedPetition.title}" rejected and removed.`,
-      );
-    } catch (error) {
-      console.error("Error rejecting petition:", error);
-      toast.error("Failed to reject petition");
-    } finally {
-      setProcessing(null);
-      setSelectedPetition(null);
-    }
+    router.push(`/petitions/${petition.id}`);
   };
 
   return (
@@ -158,59 +86,6 @@ export default function ReviewPage() {
           )}
         </div>
       </div>
-
-      <PetitionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        petition={selectedPetition}
-        isReviewMode={true}
-        onApprove={handleApprove}
-        onReject={openRejectDialog}
-      />
-
-      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Petition</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to reject "{selectedPetition?.title}"? This
-              action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4">
-            <label htmlFor="reason" className="text-sm font-medium mb-2 block">
-              Reason for rejection (optional)
-            </label>
-            <Textarea
-              id="reason"
-              placeholder="Please explain why this petition is being rejected..."
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              rows={4}
-            />
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsRejectDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={processing === selectedPetition?.id}
-            >
-              {processing === selectedPetition?.id && (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              )}
-              Reject Petition
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AdminGuard>
   );
 }

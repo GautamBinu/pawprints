@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { PetitionStatus, Petition } from "@/types/petition";
 import { z } from "zod";
 import sanitizeHtml from "sanitize-html";
+import { PETITION_DURATION_MS, PETITION_THRESHOLD } from "@/lib/constants";
 import {
   createNotification,
   notifyPetitionSubscribers,
@@ -148,11 +149,45 @@ export async function rejectPetition(id: number) {
   revalidatePath("/", "layout");
 }
 
+export async function returnPetition(petitionId: number) {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) throw new Error("Unauthorized");
+  const userId = tokens.decodedToken.uid;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (user?.isStaff !== true && user?.isSuperAdmin !== true) {
+    throw new Error("Unauthorized: Access denied");
+  }
+
+  const petition = await prisma.petition.findUnique({
+    where: { id: petitionId },
+  });
+  if (!petition) throw new Error("Petition not found");
+
+  await prisma.petition.update({
+    where: { id: petitionId },
+    data: {
+      status: PetitionStatus.Returned,
+    },
+  });
+
+  await createNotification(
+    petition.authorId,
+    "Petition Returned",
+    `Your petition "${petition.title}" has been returned for changes.`,
+    "SYSTEM",
+    petition.id,
+  );
+
+  revalidatePath("/", "layout");
+}
+
 export async function createPetition(data: {
   title: string;
   description: string;
   tags: string[];
   expires?: string;
+  isDraft?: boolean;
 }) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) {
@@ -168,6 +203,7 @@ export async function createPetition(data: {
     description: z.string().min(50),
     tags: z.array(z.string()).min(1, "At least one category is required"),
     expires: z.string().optional(),
+    isDraft: z.boolean().optional(),
   });
 
   const validatedData = schema.parse(data);
@@ -190,15 +226,17 @@ export async function createPetition(data: {
     throw new Error("Unauthorized: You do not have access to create petitions");
   }
 
-  await prisma.petition.create({
+  const petition = await prisma.petition.create({
     data: {
       title: validatedData.title,
       description: sanitizeHtml(validatedData.description, sanitizeOptions),
       authorId: userId,
-      status: PetitionStatus.New, // 0: Draft
+      status: validatedData.isDraft
+        ? PetitionStatus.New
+        : PetitionStatus.NeedsReview,
       expires: validatedData.expires
         ? new Date(validatedData.expires)
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default 30 days
+        : new Date(Date.now() + PETITION_DURATION_MS),
       tags: {
         connectOrCreate: validatedData.tags.map((tag) => ({
           where: { name: tag },
@@ -209,6 +247,8 @@ export async function createPetition(data: {
   });
 
   revalidatePath("/profile");
+
+  return petition;
 }
 
 export async function updatePetition(
@@ -218,6 +258,7 @@ export async function updatePetition(
     description: string;
     tags: string[];
     expires?: string;
+    isDraft?: boolean;
   },
 ) {
   const tokens = await getTokens(await cookies(), authConfig);
@@ -231,7 +272,10 @@ export async function updatePetition(
   if (!petition) throw new Error("Petition not found");
   if (petition.authorId !== userId)
     throw new Error("Unauthorized: You can only edit your own petitions");
-  if (petition.status !== PetitionStatus.New)
+  if (
+    petition.status !== PetitionStatus.New &&
+    petition.status !== PetitionStatus.Returned
+  )
     throw new Error("Petition cannot be edited in its current status");
 
   const schema = z.object({
@@ -243,6 +287,7 @@ export async function updatePetition(
     description: z.string().min(50),
     tags: z.array(z.string()).min(1, "At least one category is required"),
     expires: z.string().optional(),
+    isDraft: z.boolean().optional(),
   });
 
   const validatedData = schema.parse(data);
@@ -254,7 +299,7 @@ export async function updatePetition(
       description: sanitizeHtml(validatedData.description, sanitizeOptions),
       expires: validatedData.expires
         ? new Date(validatedData.expires)
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        : new Date(Date.now() + PETITION_DURATION_MS),
       tags: {
         set: [],
         connectOrCreate: validatedData.tags.map((tag) => ({
@@ -316,8 +361,11 @@ export async function publishPetition(petitionId: number) {
   if (petition.authorId !== userId)
     throw new Error("Unauthorized: You can only publish your own petitions");
 
-  if (petition.status !== PetitionStatus.New) {
-    throw new Error("Petition is not in draft status");
+  if (
+    petition.status !== PetitionStatus.New &&
+    petition.status !== PetitionStatus.Returned
+  ) {
+    throw new Error("Petition is not in draft or returned status");
   }
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -332,7 +380,7 @@ export async function publishPetition(petitionId: number) {
     data: {
       status: PetitionStatus.NeedsReview,
       createdAt: new Date(), // Reset created_at
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Reset expires to 30 days from now
+      expires: new Date(Date.now() + PETITION_DURATION_MS),
     },
   });
   revalidatePath("/", "layout");
@@ -429,7 +477,7 @@ export async function signPetition(petitionId: number) {
   const alreadySigned = petition.signers.some((s) => s.id === userId);
   if (alreadySigned) throw new Error("Already signed");
 
-  await prisma.petition.update({
+  const updatedPetition = await prisma.petition.update({
     where: { id: petitionId },
     data: {
       signatures: { increment: 1 },
@@ -439,6 +487,22 @@ export async function signPetition(petitionId: number) {
       },
     },
   });
+
+  if (updatedPetition.signatures === PETITION_THRESHOLD) {
+    await createNotification(
+      updatedPetition.authorId,
+      "Threshold Reached",
+      `Your petition "${updatedPetition.title}" has reached ${PETITION_THRESHOLD} signatures!`,
+      "THRESHOLD",
+      updatedPetition.id,
+    );
+    await notifyPetitionSubscribers(
+      updatedPetition.id,
+      "Threshold Reached",
+      `The petition "${updatedPetition.title}" has reached ${PETITION_THRESHOLD} signatures!`,
+      "THRESHOLD",
+    );
+  }
 
   revalidatePath("/", "layout");
 }
@@ -832,4 +896,47 @@ export async function updateNotificationSettings(settings: {
     },
   });
   revalidatePath("/profile");
+}
+
+export async function getPetition(id: number) {
+  const petition = await prisma.petition.findUnique({
+    where: { id },
+    include: {
+      tags: true,
+      author: true,
+      response: true,
+      updates: true,
+    },
+  });
+
+  if (!petition) return null;
+
+  return {
+    id: petition.id,
+    title: petition.title,
+    description: petition.description,
+    tags: petition.tags,
+    author: petition.author?.name || petition.authorId,
+    signatures: petition.signatures,
+    created_at: petition.createdAt.toISOString(),
+    status: petition.status,
+    expires: petition.expires.toISOString(),
+    last_signed: petition.lastSigned?.toISOString() || null,
+    has_response: petition.hasResponse,
+    response: petition.response
+      ? {
+          id: petition.response.id,
+          description: petition.response.description,
+          created_at: petition.response.createdAt.toISOString(),
+          author: petition.response.author,
+        }
+      : null,
+    in_progress: petition.inProgress,
+    updates: petition.updates.map((u) => ({
+      id: u.id,
+      description: u.description,
+      created_at: u.createdAt.toISOString(),
+    })),
+    old_id: petition.oldId,
+  };
 }

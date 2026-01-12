@@ -12,7 +12,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PetitionGrid, PetitionModal } from "@/components";
+import { PetitionGrid } from "@/components";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Loader2, UserIcon, CalendarIcon } from "lucide-react";
 import { NotificationSettings } from "@/components/Notifications/NotificationSettings";
@@ -30,11 +30,6 @@ interface UserProfile {
 function ProfileContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPetition, setSelectedPetition] = useState<Petition | null>(
-    null,
-  );
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -54,27 +49,7 @@ function ProfileContent() {
   }, []);
 
   const handlePetitionClick = (petition: Petition) => {
-    setSelectedPetition(petition);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedPetition(null);
-  };
-
-  const handlePetitionUpdated = (updatedPetition: Petition) => {
-    if (!profile) return;
-
-    setProfile({
-      ...profile,
-      createdPetitions: profile.createdPetitions.map((p) =>
-        p.id === updatedPetition.id ? updatedPetition : p,
-      ),
-      signedPetitions: profile.signedPetitions.map((p) =>
-        p.id === updatedPetition.id ? updatedPetition : p,
-      ),
-    });
+    router.push(`/petitions/${petition.id}`);
   };
 
   if (loading) {
@@ -187,16 +162,6 @@ function ProfileContent() {
           </Tabs>
         </div>
       </div>
-
-      <PetitionModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        petition={selectedPetition}
-        initialIsAuthor={profile?.createdPetitions.some(
-          (p) => p.id === selectedPetition?.id,
-        )}
-        onPetitionUpdated={handlePetitionUpdated}
-      />
     </div>
   );
 }

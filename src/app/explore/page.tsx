@@ -1,25 +1,21 @@
 import React, { Suspense } from "react";
 import { getTokens } from "next-firebase-auth-edge";
 import { cookies } from "next/headers";
-import { authConfig } from "./config/server-config";
+import { redirect } from "next/navigation";
+import { authConfig } from "../config/server-config";
 import { getPetitions } from "@/app/actions";
-import PublicHome from "@/components/Home/PublicHome";
-import LoggedInHome from "@/components/Home/LoggedInHome";
+import ExploreClient from "@/components/Explore/ExploreClient";
 
 export const revalidate = 60; // ISR: Revalidate every 60 seconds
 
-export default async function Home() {
+export default async function ExplorePage() {
   const tokens = await getTokens(await cookies(), authConfig);
 
   if (!tokens) {
-    return <PublicHome />;
+    redirect("/login");
   }
 
   const petitions = await getPetitions();
-
-  const trendingPetitions = [...petitions]
-    .sort((a, b) => b.signatures - a.signatures)
-    .slice(0, 6);
 
   return (
     <Suspense
@@ -29,7 +25,7 @@ export default async function Home() {
         </div>
       }
     >
-      <LoggedInHome trendingPetitions={trendingPetitions} />
+      <ExploreClient initialPetitions={petitions} />
     </Suspense>
   );
 }

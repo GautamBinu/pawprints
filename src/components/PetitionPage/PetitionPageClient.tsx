@@ -1,31 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Petition, PetitionStatus } from "../../types/petition";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerFooter,
-  DrawerClose,
-} from "../ui/drawer";
-import { ScrollArea } from "../ui/scroll-area";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
-  CalendarIcon,
-  UserIcon,
   PenToolIcon,
   CheckCircle2Icon,
   ClockIcon,
@@ -34,7 +17,6 @@ import {
   X,
   Share2,
 } from "lucide-react";
-import { useMediaQuery } from "../../hooks/use-media-query";
 import { useAuth } from "../../app/auth/AuthContext";
 import {
   signPetition,
@@ -47,9 +29,25 @@ import {
   addResponse,
   editUpdate,
   editResponse,
+  approvePetition,
+  rejectPetition,
+  returnPetition,
 } from "../../app/actions";
 import { toast } from "sonner";
-import PetitionForm, { PetitionFormData } from "../PetitionForm/PetitionForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { Textarea } from "../ui/textarea";
+import PetitionForm, {
+  PetitionFormData,
+  formSchema,
+  FormValues,
+} from "../PetitionForm/PetitionForm";
 import dynamic from "next/dynamic";
 import { PlusIcon } from "lucide-react";
 import "react-quill-new/dist/quill.snow.css";
@@ -78,10 +76,8 @@ const formats = [
   "link",
 ];
 
-interface PetitionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  petition: Petition | null;
+interface PetitionPageClientProps {
+  initialPetition: Petition;
   initialIsAuthor?: boolean;
   onPetitionUpdated?: (petition: Petition) => void;
   isReviewMode?: boolean;
@@ -89,7 +85,7 @@ interface PetitionModalProps {
   onReject?: (petition: Petition) => void;
 }
 
-const TARGET_SIGNATURES = 200; // Default target
+const TARGET_SIGNATURES = 150;
 
 const getStatusInfo = (status: PetitionStatus) => {
   switch (status) {
@@ -111,6 +107,12 @@ const getStatusInfo = (status: PetitionStatus) => {
         color: "text-red-600",
         badge: "bg-red-100 text-red-800",
       };
+    case PetitionStatus.Returned:
+      return {
+        text: "Returned for Changes",
+        color: "text-red-600",
+        badge: "bg-red-100 text-red-800",
+      };
     case PetitionStatus.NeedsReview:
       return {
         text: "Needs Review",
@@ -126,22 +128,27 @@ const getStatusInfo = (status: PetitionStatus) => {
   }
 };
 
-const PetitionModal: React.FC<PetitionModalProps> = ({
-  isOpen,
-  onClose,
-  petition: initialPetition,
+const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
+  initialPetition: initialPetitionProp,
   initialIsAuthor = false,
   onPetitionUpdated,
   isReviewMode = false,
   onApprove,
   onReject,
 }) => {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
   const { user } = useAuth();
+  const [petition, setPetition] = useState<Petition>(initialPetitionProp);
 
-  const [petition, setPetition] = React.useState<Petition | null>(
-    initialPetition,
-  );
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: petition.title,
+      description: petition.description,
+      category: petition.tags[0]?.name || "",
+      targetSignatures: 150,
+      expiresDate: petition.expires,
+    },
+  });
   const [isSigned, setIsSigned] = React.useState(false);
   const [isAuthor, setIsAuthor] = React.useState(initialIsAuthor);
   const [isAdmin, setIsAdmin] = React.useState(false);
@@ -155,11 +162,27 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
   const [editingResponseId, setEditingResponseId] = React.useState<
     number | null
   >(null);
+
   const [adminContent, setAdminContent] = React.useState("");
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = React.useState(false);
+  const [isReturnDialogOpen, setIsReturnDialogOpen] = React.useState(false);
+  const [rejectReason, setRejectReason] = React.useState("");
 
   React.useEffect(() => {
-    setPetition(initialPetition);
-  }, [initialPetition]);
+    if (isEditing) {
+      form.reset({
+        title: petition.title,
+        description: petition.description,
+        category: petition.tags[0]?.name || "",
+        targetSignatures: 150,
+        expiresDate: new Date(petition.expires).toISOString().split("T")[0],
+      });
+    }
+  }, [isEditing, petition, form]);
+
+  React.useEffect(() => {
+    setPetition(initialPetitionProp);
+  }, [initialPetitionProp]);
 
   React.useEffect(() => {
     setIsEditing(false);
@@ -169,10 +192,9 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
     setEditingResponseId(null);
     setAdminContent("");
 
-    if (isOpen && petition && user) {
+    if (petition && user) {
       setIsLoadingSign(true);
 
-      // Check admin status
       checkAdminAccess().then(setIsAdmin).catch(console.error);
 
       if (initialIsAuthor) {
@@ -191,7 +213,7 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
       setIsAuthor(initialIsAuthor);
       setIsAdmin(false);
     }
-  }, [isOpen, petition?.id, user, initialIsAuthor]); // Removed petition from dependency to avoid loop if we update it locally, but we need to react to ID changes
+  }, [petition?.id, user, initialIsAuthor]);
 
   const handleUpdate = async (data: PetitionFormData) => {
     if (!petition) return;
@@ -228,7 +250,6 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
         toast.success("Update added successfully");
         setIsAddingUpdate(false);
 
-        // Update local state
         const updatedPetition = {
           ...petition,
           updates: [newUpdate, ...petition.updates],
@@ -240,7 +261,6 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
         toast.success("Response added successfully");
         setIsAddingResponse(false);
 
-        // Update local state
         const updatedPetition = {
           ...petition,
           hasResponse: true,
@@ -253,7 +273,6 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
         toast.success("Update edited successfully");
         setEditingUpdateId(null);
 
-        // Update local state
         const updatedPetition = {
           ...petition,
           updates: petition.updates.map((u) =>
@@ -270,7 +289,6 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
         toast.success("Response edited successfully");
         setEditingResponseId(null);
 
-        // Update local state
         const updatedPetition = {
           ...petition,
           response: updatedResponse,
@@ -323,12 +341,58 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
     try {
       await publishPetition(petition.id);
       toast.success("Petition submitted for review");
-      onClose();
     } catch (error) {
       console.error(error);
       toast.error(
         error instanceof Error ? error.message : "Failed to publish petition",
       );
+    } finally {
+      setIsLoadingSign(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!petition) return;
+    setIsLoadingSign(true);
+    try {
+      await approvePetition(petition.id);
+      toast.success("Petition approved and published");
+      setPetition({ ...petition, status: PetitionStatus.Published });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to approve petition");
+    } finally {
+      setIsLoadingSign(false);
+    }
+  };
+
+  const handleReturn = async () => {
+    if (!petition) return;
+    setIsLoadingSign(true);
+    try {
+      await returnPetition(petition.id);
+      toast.success("Petition returned for changes");
+      setPetition({ ...petition, status: PetitionStatus.Returned });
+      setIsReturnDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to return petition");
+    } finally {
+      setIsLoadingSign(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!petition) return;
+    setIsLoadingSign(true);
+    try {
+      await rejectPetition(petition.id);
+      toast.success("Petition rejected");
+      setPetition({ ...petition, status: PetitionStatus.Removed });
+      setIsRejectDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to reject petition");
     } finally {
       setIsLoadingSign(false);
     }
@@ -581,18 +645,10 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
             </Button>
           </div>
           <PetitionForm
+            form={form}
             onSubmit={handleUpdate}
             isSubmitting={isLoadingSign}
             submitLabel="Save Changes"
-            initialValues={{
-              title: petition.title,
-              description: petition.description,
-              category: petition.tags[0]?.name || "",
-              targetSignatures: TARGET_SIGNATURES,
-              expiresDate: new Date(petition.expires)
-                .toISOString()
-                .split("T")[0],
-            }}
           />
         </div>
       );
@@ -797,19 +853,33 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
         </dl>
 
         <div className={`mt-auto ${mobile ? "pt-4" : "pt-6"}`}>
-          {isReviewMode ? (
+          {isAdmin && petition.status === PetitionStatus.NeedsReview ? (
             <div className="space-y-2">
               <Button
-                onClick={() => onApprove?.(petition)}
+                onClick={handleApprove}
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
+                disabled={isLoadingSign}
               >
-                <CheckCircle2Icon className="mr-2 h-4 w-4" />
+                {isLoadingSign ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2Icon className="mr-2 h-4 w-4" />
+                )}
                 Approve & Publish
               </Button>
               <Button
-                onClick={() => onReject?.(petition)}
+                onClick={() => setIsReturnDialogOpen(true)}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                disabled={isLoadingSign}
+              >
+                <PenToolIcon className="mr-2 h-4 w-4" />
+                Return for Changes
+              </Button>
+              <Button
+                onClick={() => setIsRejectDialogOpen(true)}
                 variant="destructive"
                 className="w-full"
+                disabled={isLoadingSign}
               >
                 <X className="mr-2 h-4 w-4" />
                 Reject
@@ -938,70 +1008,124 @@ const PetitionModal: React.FC<PetitionModalProps> = ({
     }
 
     return (
-      <ScrollArea className="w-80 border-l bg-muted/10 h-full">
-        <div className="flex flex-col gap-4 p-4 min-h-full">{content}</div>
-      </ScrollArea>
+      <div className="lg:w-80 lg:border-l lg:bg-muted/10 lg:min-h-screen">
+        <div className="flex flex-col gap-4 p-4 lg:sticky lg:top-4">
+          {content}
+        </div>
+
+        <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reject Petition</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to reject "{petition.title}"? This action
+                cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4">
+              <label
+                htmlFor="reason"
+                className="text-sm font-medium mb-2 block"
+              >
+                Reason for rejection (optional)
+              </label>
+              <Textarea
+                id="reason"
+                placeholder="Please explain why this petition is being rejected..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={4}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsRejectDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleReject}
+                disabled={isLoadingSign}
+              >
+                {isLoadingSign && (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                )}
+                Reject Petition
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isReturnDialogOpen} onOpenChange={setIsReturnDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Return for Changes</DialogTitle>
+              <DialogDescription>
+                Return "{petition.title}" to the author for changes? They will
+                be notified.
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsReturnDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleReturn}
+                disabled={isLoadingSign}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                {isLoadingSign && (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                )}
+                Return Petition
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     );
   };
 
-  if (isDesktop) {
-    return (
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="sm:max-w-[85vw] w-full h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-4 border-b flex-shrink-0 pr-12">
-            <DialogTitle className="text-2xl font-bold text-foreground mb-2">
-              {petition.title}
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-sm">
-              Petition by {petition.author}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-1 overflow-hidden flex-row">
-            <ScrollArea className="flex-1">
-              <div className="p-6">{renderPetitionBody()}</div>
-            </ScrollArea>
-            <PetitionSidebar />
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  if (!petition) return null;
 
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="h-[95vh]">
-        <DrawerHeader className="text-left border-b">
-          <DrawerTitle className="text-xl font-bold">
-            {petition.title}
-          </DrawerTitle>
-          <DrawerDescription>Petition by {petition.author}</DrawerDescription>
-        </DrawerHeader>
-        <div className="flex-1 min-h-0">
-          <ScrollArea className="h-full overflow-y-auto">
-            <div className="py-6 px-4">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto">
+        <div className="flex flex-col justify-between lg:flex-row">
+          <div className="flex-1 p-6 lg:p-8 lg:pr-12 max-w-5xl">
+            {!isEditing && (
+              <div className="mb-8">
+                <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">
+                  {petition.title}
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  Petition by {petition.author}
+                </p>
+              </div>
+            )}
+
+            <div className="lg:hidden mb-8">
               <PetitionSidebar mobile />
             </div>
-            <div className="pb-8">
-              {(petition.updates?.length > 0 || petition.response) && (
-                <Separator className="mb-6" />
-              )}
-              <div className="px-4">{renderDescription()}</div>
-              <div className="my-6 px-4 space-y-6">
-                {renderUpdates()}
-                {renderResponse()}
-              </div>
-            </div>
-          </ScrollArea>
+
+            {renderPetitionBody()}
+          </div>
+
+          <div className="hidden lg:block">
+            <PetitionSidebar />
+          </div>
         </div>
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Close</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+      </div>
+    </div>
   );
 };
 
-export default PetitionModal;
+export default PetitionPageClient;
