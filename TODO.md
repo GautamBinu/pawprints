@@ -1,10 +1,11 @@
 - [ ] Canonical URL redirect to petition ID
 - [X] About page
 - [X] robots, security, privacy, canonical pages
-- [ ] Known bug: copy link does not work on mobile
+- [ ] Fix: copy link does not work on mobile
 - [X] Share link button on mobile devices
 - [X] Petition page by itself /p/<petition-id>
 - [ ] Petition threshold 300?
+  - [ ] Change to 150
 - [ ] Petition expiry date 1 year?
 - [ ] Staff perms confirmed?
 - [X] In-app notifications
@@ -19,12 +20,21 @@
 - [ ] Umami analytics
 - [X] Dark mode
 - [ ] More filters for petitions, especially by response, update, and date status
-- [ ] Google login with redirect instead of popup
+- [ ] Fix: logout page
+- [ ] Fix: mobile responsiveness for some pages
 - [ ] Fully gated, main page only for signed-in users
 - [ ] Change pawprints logos
 - [ ] Support images in Quill
 - [ ] Only draft if quit creation
 - [ ] Dashboard for editing responses and updates
 - [ ] Delete published petiton for admins
-- [ ] Colored backgrounds for petitions in dark mode
+- [ ] Fix: Colored backgrounds for petitions in dark mode
 - [ ] Move repo to GitHub org
+- [ ] Lifecycle changes
+  - [ ] Petition draft auto-delete after 7 days
+  - [ ] Reject petition with request for review
+  - [ ] Archive petitions after expiry date
+- [ ] Superadmin logging
+- [ ] Fix: show petition status on cards too maybe?
+- [ ] Change spinner to something more aesthetic?
+- [ ] Big feat: reports
