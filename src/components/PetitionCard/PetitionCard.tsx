@@ -83,6 +83,11 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
           label: "Under Review",
           color: "bg-yellow-100 text-yellow-800 border-yellow-200",
         };
+      case PetitionStatus.Returned:
+        return {
+          label: "Returned for Changes",
+          color: "bg-orange-100 text-red-800 border-red-200",
+        };
       default:
         return {
           label: "Unknown",

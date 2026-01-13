@@ -18,6 +18,7 @@ import {
 } from "@/app/actions";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { time } from "node:console";
 
 interface NotificationItem {
   id: number;
@@ -37,6 +38,34 @@ export const NotificationBell = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Source - https://stackoverflow.com/a
+  // Posted by Stas, modified by community. See post 'Timeline' for change history
+  // Retrieved 2026-01-13, License - CC BY-SA 4.0
+  // Source - https://stackoverflow.com/a
+  // Posted by Md Abdul Shahed, modified by community. See post 'Timeline' for change history
+  // Retrieved 2026-01-13, License - CC BY-SA 4.0
+  function timeAgo(input: Date) {
+    const date = input instanceof Date ? input : new Date(input);
+    const formatter = new Intl.RelativeTimeFormat("en");
+    const ranges = [
+      ["years", 3600 * 24 * 365],
+      ["months", 3600 * 24 * 30],
+      ["weeks", 3600 * 24 * 7],
+      ["days", 3600 * 24],
+      ["hours", 3600],
+      ["minutes", 60],
+      ["seconds", 1],
+    ] as const;
+    const secondsElapsed = (date.getTime() - Date.now()) / 1000;
+
+    for (const [rangeType, rangeVal] of ranges) {
+      if (rangeVal < Math.abs(secondsElapsed)) {
+        const delta = secondsElapsed / rangeVal;
+        return formatter.format(Math.round(delta), rangeType);
+      }
+    }
+  }
 
   const fetchNotifications = async () => {
     try {
@@ -114,7 +143,6 @@ export const NotificationBell = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="h-auto px-2 text-xs text-muted-foreground hover:text-primary"
               onClick={(e) => {
                 e.preventDefault();
                 handleMarkAllAsRead();
@@ -157,7 +185,7 @@ export const NotificationBell = () => {
                         </p>
                       </div>
 
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                      <p className="text-sm text-muted-foreground">
                         {notification.message}
                       </p>
                       {notification.petition && (
@@ -175,11 +203,7 @@ export const NotificationBell = () => {
                         </Link>
                       )}
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        {new Date(notification.createdAt).toLocaleDateString()}{" "}
-                        {new Date(notification.createdAt).toLocaleTimeString(
-                          [],
-                          { hour: "2-digit", minute: "2-digit" },
-                        )}
+                        {timeAgo(notification.createdAt)}
                       </p>
                     </div>
                     {!notification.read && (

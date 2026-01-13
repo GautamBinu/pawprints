@@ -917,6 +917,7 @@ export async function getPetition(id: number) {
     description: petition.description,
     tags: petition.tags,
     author: petition.author?.name || petition.authorId,
+    authorId: petition.authorId,
     signatures: petition.signatures,
     created_at: petition.createdAt.toISOString(),
     status: petition.status,

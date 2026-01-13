@@ -1,7 +1,12 @@
-import { notFound } from "next/navigation";
 import { getPetition } from "@/app/actions";
 import PetitionPageClient from "@/components/PetitionPage/PetitionPageClient";
 import { Metadata } from "next";
+import { getTokens } from "next-firebase-auth-edge";
+import { cookies } from "next/headers";
+import { authConfig } from "../../config/server-config";
+import { PetitionStatus } from "@/types/petition";
+import PetitionNotFound from "@/components/PetitionPage/PetitionNotFound";
+import { prisma } from "@/lib/prisma";
 
 interface PageProps {
   params: Promise<{
@@ -30,13 +35,34 @@ export default async function PetitionPage({ params }: PageProps) {
   const id = parseInt(resolvedParams.id);
 
   if (isNaN(id)) {
-    notFound();
+    return <PetitionNotFound />;
   }
 
   const petition = await getPetition(id);
 
   if (!petition) {
-    notFound();
+    return <PetitionNotFound />;
+  }
+
+  if (petition.status !== PetitionStatus.Published) {
+    const tokens = await getTokens(await cookies(), authConfig);
+
+    if (!tokens) {
+      return <PetitionNotFound />;
+    }
+
+    const userId = tokens.decodedToken.uid;
+
+    if (petition.authorId !== userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { isStaff: true, isSuperAdmin: true },
+      });
+
+      if (!user?.isStaff && !user?.isSuperAdmin) {
+        return <PetitionNotFound />;
+      }
+    }
   }
 
   return <PetitionPageClient initialPetition={petition} />;

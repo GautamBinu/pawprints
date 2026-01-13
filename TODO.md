@@ -1,14 +1,14 @@
 - [ ] Canonical URL redirect to petition ID
-- [X] About page
-- [X] robots, security, privacy, canonical pages
+- [x] About page
+- [x] robots, security, privacy, canonical pages
 - [ ] Fix: copy link does not work on mobile
-- [X] Share link button on mobile devices
-- [X] Petition page by itself /p/<petition-id>
-- [X] Petition threshold 300?
-  - [X] Change to 150
+- [x] Share link button on mobile devices
+- [x] Petition page by itself /p/<petition-id>
+- [x] Petition threshold 300?
+  - [x] Change to 150
 - [ ] Petition expiry date 6 months
 - [ ] Staff perms confirmed?
-- [X] In-app notifications
+- [x] In-app notifications
 - [ ] Native push notifications
 - [ ] Emails
   - [ ] pawprints rit email (sgdubaitech)
@@ -18,7 +18,7 @@
 - [ ] Code docs
 - [ ] Application hosting
 - [ ] Umami analytics
-- [X] Dark mode
+- [x] Dark mode
 - [ ] More filters for petitions, especially by response, update, and date status
 - [ ] Fix: logout page
 - [ ] Fix: mobile responsiveness for some pages

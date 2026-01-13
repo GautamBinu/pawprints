@@ -341,6 +341,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
     try {
       await publishPetition(petition.id);
       toast.success("Petition submitted for review");
+      setPetition({ ...petition, status: PetitionStatus.NeedsReview });
     } catch (error) {
       console.error(error);
       toast.error(
@@ -970,6 +971,38 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                         </div>
                       )}
 
+                      {petition.status === PetitionStatus.Returned && (
+                        <div>
+                          <Button
+                            disabled
+                            variant="secondary"
+                            className="w-full bg-red-100 text-red-800 hover:bg-red-100 mb-2"
+                          >
+                            Returned for Changes
+                          </Button>
+                          <Button
+                            onClick={handlePublish}
+                            disabled={isLoadingSign || isEditing}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            {isLoadingSign && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Resubmit for Review
+                          </Button>
+                          {!isEditing && (
+                            <Button
+                              onClick={() => setIsEditing(true)}
+                              disabled={isLoadingSign}
+                              variant="outline"
+                              className="w-full mt-2"
+                            >
+                              Edit Petition
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
                       {petition.status === PetitionStatus.Removed && (
                         <Button
                           disabled
@@ -1008,7 +1041,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
     }
 
     return (
-      <div className="lg:w-80 lg:border-l lg:bg-muted/10 lg:min-h-screen">
+      <div className="lg:w-80 lg:border-l lg:bg-muted/10 h-full">
         <div className="flex flex-col gap-4 p-4 lg:sticky lg:top-4">
           {content}
         </div>
@@ -1099,7 +1132,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto">
-        <div className="flex flex-col justify-between lg:flex-row">
+        <div className="flex flex-col lg:flex-row lg:justify-center lg:gap-4 min-h-screen">
           <div className="flex-1 p-6 lg:p-8 lg:pr-12 max-w-5xl">
             {!isEditing && (
               <div className="mb-8">
@@ -1119,7 +1152,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
             {renderPetitionBody()}
           </div>
 
-          <div className="hidden lg:block">
+          <div className="hidden lg:block shrink-0">
             <PetitionSidebar />
           </div>
         </div>

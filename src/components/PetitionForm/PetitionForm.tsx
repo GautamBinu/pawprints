@@ -301,7 +301,14 @@ export default function PetitionForm({
               disabled={isSubmitting}
               className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
-              {isSubmitting ? <Spinner /> : submitLabel}
+              {isSubmitting ? (
+                <>
+                  <Spinner />
+                  Processing
+                </>
+              ) : (
+                submitLabel
+              )}
             </Button>
           </div>
         )}

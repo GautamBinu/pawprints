@@ -22,6 +22,7 @@ export default function New() {
   const router = useRouter();
 
   const isSavingRef = useRef(false);
+  const petitionIdRef = useRef<number | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -76,6 +77,7 @@ export default function New() {
         const newPetition = await createPetition(petitionData);
         if (newPetition) {
           setPetitionId(newPetition.id);
+          petitionIdRef.current = newPetition.id;
         }
       }
     } catch (error) {
@@ -95,16 +97,23 @@ export default function New() {
   const handleSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
 
+    // Wait for any pending auto-save to finish
+    while (isSavingRef.current) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    const currentPetitionId = petitionIdRef.current || petitionId;
+
     try {
-      if (petitionId) {
-        await updatePetition(petitionId, {
+      if (currentPetitionId) {
+        await updatePetition(currentPetitionId, {
           title: data.title,
           description: data.description,
           tags: [data.category],
           expires: data.expiresDate,
           isDraft: true, // Update as draft first
         });
-        await publishPetition(petitionId);
+        await publishPetition(currentPetitionId);
       } else {
         await createPetition({
           title: data.title,
@@ -206,6 +215,7 @@ export default function New() {
                 ) {
                   form.reset();
                   setPetitionId(null);
+                  petitionIdRef.current = null;
                 }
               }}
               disabled={isSubmitting}
@@ -218,7 +228,14 @@ export default function New() {
               disabled={isSubmitting || !isValid}
               className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
-              {isSubmitting ? <Spinner /> : "Submit for Review"}
+              {isSubmitting ? (
+                <>
+                  <Spinner />
+                  Processing
+                </>
+              ) : (
+                "Submit for Review"
+              )}
             </Button>
           </div>
         </PetitionForm>
