@@ -24,6 +24,25 @@ interface SearchBarProps {
   selectedFilter?: string;
 }
 
+const categories = [
+  "Academic Affairs",
+  "Student Services",
+  "Campus Life (SG, Clubs, & Organizations)",
+  "Facilities & Parking",
+  "Technology",
+  "Housing",
+  "Dining Services / Cafeteria",
+  "Commuter Transportation",
+  "Health & Wellness",
+  "Safety & Security",
+  "Accessibility & Inclusion",
+  "Sustainability",
+  "Financial Services",
+  "Library & Learning Resources",
+  "Career Services",
+  "Other",
+];
+
 const SearchBar: React.FC<SearchBarProps> = ({
   onSearchChange,
   onFilterChange,
@@ -75,24 +94,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
             <SelectValue placeholder={`Filter: ${localSelectedFilter}`} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="All">All</SelectItem>
-            <SelectItem value="Technology">Technology</SelectItem>
-            <SelectItem value="Academics">Academics</SelectItem>
-            <SelectItem value="Parking & Transportation">
-              Parking & Transportation
-            </SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
-            <SelectItem value="Dining">Dining</SelectItem>
-            <SelectItem value="Sustainability">Sustainability</SelectItem>
-            <SelectItem value="Facilities">Facilities</SelectItem>
-            <SelectItem value="Housing">Housing</SelectItem>
-            <SelectItem value="Public Safety">Public Safety</SelectItem>
-            <SelectItem value="Campus Life">Campus Life</SelectItem>
-            <SelectItem value="Governance">Governance</SelectItem>
-            <SelectItem value="Clubs & Organizations">
-              Clubs & Organizations
-            </SelectItem>
-            <SelectItem value="Deaf Advocacy">Deaf Advocacy</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </ButtonGroup>

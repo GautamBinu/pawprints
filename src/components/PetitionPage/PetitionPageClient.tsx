@@ -1,11 +1,14 @@
 "use client";
 
+import { PETITION_THRESHOLD, PETITION_TIERS } from "@/lib/constants";
+
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Petition, PetitionStatus } from "../../types/petition";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { ButtonGroup } from "../ui/button-group";
 import { Separator } from "../ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
@@ -24,7 +27,6 @@ import {
   getPetitionSignatureStatus,
   publishPetition,
   updatePetition,
-  checkAdminAccess,
   addUpdate,
   addResponse,
   editUpdate,
@@ -32,7 +34,10 @@ import {
   approvePetition,
   rejectPetition,
   returnPetition,
+  getStaffPermissions,
+  unpublishPetition,
 } from "../../app/actions";
+import { hasPermission, PERMISSIONS } from "../../lib/permissions";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -42,6 +47,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from "../ui/textarea";
 import PetitionForm, {
   PetitionFormData,
@@ -49,7 +62,7 @@ import PetitionForm, {
   FormValues,
 } from "../PetitionForm/PetitionForm";
 import dynamic from "next/dynamic";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, MoreHorizontalIcon } from "lucide-react";
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -84,8 +97,6 @@ interface PetitionPageClientProps {
   onApprove?: (petition: Petition) => void;
   onReject?: (petition: Petition) => void;
 }
-
-const TARGET_SIGNATURES = 150;
 
 const getStatusInfo = (status: PetitionStatus) => {
   switch (status) {
@@ -152,6 +163,8 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
   const [isSigned, setIsSigned] = React.useState(false);
   const [isAuthor, setIsAuthor] = React.useState(initialIsAuthor);
   const [isAdmin, setIsAdmin] = React.useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
+  const [userPermissions, setUserPermissions] = React.useState(0);
   const [isLoadingSign, setIsLoadingSign] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isAddingUpdate, setIsAddingUpdate] = React.useState(false);
@@ -195,7 +208,13 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
     if (petition && user) {
       setIsLoadingSign(true);
 
-      checkAdminAccess().then(setIsAdmin).catch(console.error);
+      getStaffPermissions()
+        .then((data) => {
+          setIsAdmin(data.isStaff || data.isSuperAdmin);
+          setIsSuperAdmin(data.isSuperAdmin);
+          setUserPermissions(data.permissions);
+        })
+        .catch(console.error);
 
       if (initialIsAuthor) {
         setIsAuthor(true);
@@ -212,8 +231,15 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
       setIsSigned(false);
       setIsAuthor(initialIsAuthor);
       setIsAdmin(false);
+      setIsSuperAdmin(false);
+      setUserPermissions(0);
     }
-  }, [petition?.id, user, initialIsAuthor]);
+  }, [petition?.id, user, initialIsAuthor]); // Removed petition from dependency to avoid loop if we update it locally, but we need to react to ID changes
+
+  const checkPerm = (perm: number) => {
+    if (isSuperAdmin) return true;
+    return hasPermission(userPermissions, perm);
+  };
 
   const handleUpdate = async (data: PetitionFormData) => {
     if (!petition) return;
@@ -308,7 +334,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
 
   const handleAddUpdate = () => handleAdminAction("addUpdate");
   const handleAddResponse = () => handleAdminAction("addResponse");
-  const canManage = isAdmin && petition?.status !== PetitionStatus.New;
+  // const canManage = isAdmin && petition?.status !== PetitionStatus.New;
 
   const handleSign = async () => {
     if (!petition || !user) return;
@@ -399,7 +425,24 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
     }
   };
 
+  const handleUnpublish = async () => {
+    if (!petition) return;
+    setIsLoadingSign(true);
+    try {
+      await unpublishPetition(petition.id);
+      toast.success("Petition unpublished (removed)");
+      setPetition({ ...petition, status: PetitionStatus.Removed });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to unpublish petition");
+    } finally {
+      setIsLoadingSign(false);
+    }
+  };
+
   if (!petition) return null;
+
+  const TARGET_SIGNATURES = petition.targetSignatures || PETITION_THRESHOLD;
 
   const progressPercentage = Math.min(
     (petition.signatures / TARGET_SIGNATURES) * 100,
@@ -422,46 +465,50 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
   };
 
   const renderDescription = () => (
-    <div id="description" className="space-y-2 scroll-mt-4">
-      <h3 className="text-lg font-semibold">Description</h3>
-      <Card className="border-orange-200 bg-orange-50/50 dark:border-orange-900/50 dark:bg-orange-900/10 rounded-md shadow-none">
-        <CardContent className="p-y-1">
-          <div
-            className="text-foreground text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert [&_h1]:!text-foreground [&_h2]:!text-foreground [&_h3]:!text-foreground [&_p]:!text-foreground [&_strong]:!text-foreground [&_li]:!text-foreground"
-            dangerouslySetInnerHTML={{ __html: petition.description }}
-          />
-
-          <div className="flex flex-wrap gap-2 mt-8 justify-end">
-            {petition.tags.map((tag) => (
-              <Badge
-                key={tag.id}
-                variant="secondary"
-                className="font-mono text-xs uppercase"
-              >
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <section
+      id="description"
+      className="space-y-2 scroll-mt-4"
+      aria-labelledby="description-heading"
+    >
+      <h2 id="description-heading" className="sr-only">
+        Description
+      </h2>
+      <div className="flex flex-wrap gap-2 mt-8">
+        {petition.tags.map((tag) => (
+          <Badge
+            key={tag.id}
+            variant="secondary"
+            className="font-mono text-xs uppercase"
+          >
+            {tag.name}
+          </Badge>
+        ))}
+      </div>
+      <div
+        className="text-foreground text-base leading-relaxed prose prose-base max-w-none dark:prose-invert [&_h1]:!text-foreground [&_h2]:!text-foreground [&_h3]:!text-foreground [&_p]:!text-foreground [&_strong]:!text-foreground [&_li]:!text-foreground py-8"
+        dangerouslySetInnerHTML={{ __html: petition.description }}
+      />
+    </section>
   );
 
   const renderUpdates = () => {
     const hasUpdates = petition.updates && petition.updates.length > 0;
-    if (!canManage && !hasUpdates) return null;
+    const canAddUpdate = checkPerm(PERMISSIONS.ADD_UPDATE);
+    if (!canAddUpdate && !hasUpdates) return null;
 
     return (
-      <div id="updates" className="space-y-4 scroll-mt-4">
+      <section className="space-y-4 mb-12" aria-labelledby="updates-heading">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Updates</h3>
-          {canManage && !isAddingUpdate && (
+          <h2 id="updates-heading" className="text-xl font-semibold">
+            Updates
+          </h2>
+          {canAddUpdate && (
             <Button
+              onClick={() => setIsAddingUpdate(true)}
               variant="outline"
               size="sm"
-              onClick={() => setIsAddingUpdate(true)}
             >
-              <PlusIcon className="h-4 w-4 mr-2" />
+              <PlusIcon className="mr-2 h-4 w-4" />
               Add Update
             </Button>
           )}
@@ -508,58 +555,78 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
         )}
 
         {petition.updates && petition.updates.length > 0 ? (
-          <div className="relative pl-6 border-l-2 border-muted space-y-6 ml-2">
+          <ol className="relative space-y-6 list-none m-0 p-0">
             {petition.updates.map((update) => (
-              <div key={update.id} className="relative">
-                <Card className="rounded-md shadow-none">
-                  <CardHeader className="p-y-1">
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-base">Update</CardTitle>
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {new Date(update.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-y-1">
-                    <div
-                      className="text-sm prose prose-sm max-w-none dark:prose-invert"
-                      dangerouslySetInnerHTML={{ __html: update.description }}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
+              <li key={update.id} className="relative">
+                <article className="md:flex justify-start md:gap-x-24 items-start py-2 md:py-6">
+                  <div className="border-t py-2 md:w-24 md:shrink-0">
+                    <h3 className="text-xs font-mono text-muted-foreground uppercase">
+                      Update
+                    </h3>
+                    <time
+                      className="text-xs text-muted-foreground font-mono"
+                      dateTime={update.created_at}
+                    >
+                      {new Date(update.created_at).toLocaleDateString()}
+                    </time>
+                  </div>
+
+                  <div
+                    className="text-base prose prose prose-base max-w-none dark:prose-invert md:mt-0 mt-3"
+                    dangerouslySetInnerHTML={{ __html: update.description }}
+                  />
+                </article>
+              </li>
             ))}
-          </div>
+          </ol>
         ) : (
           !isAddingUpdate && (
-            <p className="text-sm text-muted-foreground italic">
-              No updates yet.
+            <p className="text-sm text-muted-foreground">
+              There are no updates yet.
             </p>
           )
         )}
-      </div>
+      </section>
     );
   };
 
   const renderResponse = () => {
     const hasResponse = !!petition.response;
-    if (!canManage && !hasResponse) return null;
+    const canAdd = checkPerm(PERMISSIONS.RESPONSE);
+    const canEdit = checkPerm(PERMISSIONS.EDIT_RESPONSE);
+
+    if (!hasResponse && !canAdd) return null;
+
+    const showButton =
+      !isAddingResponse &&
+      ((!hasResponse && canAdd) || (hasResponse && canEdit));
 
     return (
-      <div id="response" className="space-y-2 scroll-mt-4">
+      <section
+        id="response"
+        className="space-y-2 scroll-mt-4 mb-12"
+        aria-labelledby="response-heading"
+      >
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Official Response</h3>
-          {canManage && !isAddingResponse && (
+          <h2 id="response-heading" className="text-lg font-semibold mb-4">
+            Official Response
+          </h2>
+          {showButton && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
                 setIsAddingResponse(true);
-                setAdminContent(petition.response?.description || "");
+                if (hasResponse) {
+                  setEditingResponseId(petition.response!.id);
+                  setAdminContent(petition.response!.description);
+                } else {
+                  setAdminContent("");
+                }
               }}
             >
               <PenToolIcon className="h-4 w-4 mr-2" />
-              {petition.response ? "Edit Response" : "Add Response"}
+              {hasResponse ? "Edit Response" : "Add Response"}
             </Button>
           )}
         </div>
@@ -568,7 +635,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
           <Card className="border-dashed border-green-200 bg-green-50/30">
             <CardHeader>
               <CardTitle className="text-base">
-                {petition.response ? "Edit Response" : "New Response"}
+                {editingResponseId ? "Edit Response" : "New Response"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -587,13 +654,18 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                   variant="ghost"
                   onClick={() => {
                     setIsAddingResponse(false);
+                    setEditingResponseId(null);
                     setAdminContent("");
                   }}
                 >
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleAddResponse}
+                  onClick={() =>
+                    editingResponseId
+                      ? handleAdminAction("editResponse")
+                      : handleAddResponse()
+                  }
                   disabled={isLoadingSign || !adminContent.trim()}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
@@ -606,28 +678,33 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
             </CardContent>
           </Card>
         ) : petition.response ? (
-          <Card className="border-green-200 bg-green-50/50 dark:bg-green-900/10 rounded-md shadow-none">
-            <CardHeader className="p-y-1">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-base text-green-700 dark:text-green-400">
-                  Response from {petition.response.author}
-                </CardTitle>
-                <span className="text-xs text-muted-foreground font-mono">
+          <article>
+            <p className="text-xs text-green-700 dark:text-green-400">
+              From {petition.response.author}
+            </p>
+            <div className="md:flex justify-start md:gap-x-24 items-start py-2 md:py-6">
+              <header className="border-t py-2 md:w-24 md:shrink-0">
+                <h3 className="text-xs font-mono uppercase text-green-700 dark:text-green-400">
+                  Response
+                </h3>
+                <time
+                  className="text-xs text-muted-foreground font-mono"
+                  dateTime={petition.response.created_at}
+                >
                   {new Date(petition.response.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="p-y-1 pt-0">
+                </time>
+              </header>
+
               <div
-                className="text-sm prose prose-sm max-w-none dark:prose-invert"
+                className="text-base prose prose-base max-w-none dark:prose-invert"
                 dangerouslySetInnerHTML={{
                   __html: petition.response.description,
                 }}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </article>
         ) : null}
-      </div>
+      </section>
     );
   };
 
@@ -665,13 +742,13 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
   };
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/p/${petition.id}`;
+    const url = `${window.location.origin}/petitions/${petition.id}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copied to clipboard");
   };
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/p/${petition.id}`;
+    const url = `${window.location.origin}/petitions/${petition.id}`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -727,6 +804,18 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
           </Badge>
         </div>
 
+        {petition.tier > 0 && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2 mt-4">
+              Tier
+            </h4>
+            <Badge variant="secondary" className="text-sm px-3 py-1">
+              {PETITION_TIERS.find((t) => t.id === petition.tier)?.name ||
+                `Tier ${petition.tier}`}
+            </Badge>
+          </div>
+        )}
+
         <div>
           <h4 className="text-sm font-medium text-muted-foreground mb-2 mt-4">
             Signatures
@@ -762,7 +851,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                   <PenToolIcon className="h-4 w-4 text-muted-foreground" />
                   <span>Original Petition</span>
                 </div>
-                <span className="text-xs text-muted-foreground font-mono">
+                <span className="text-xs uppercase text-muted-foreground font-mono">
                   {new Date(petition.created_at).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -781,7 +870,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                     <CheckCircle2Icon className="h-4 w-4" />
                     <span>Official Response</span>
                   </div>
-                  <span className="text-xs text-green-600/80 dark:text-green-400/80 font-mono">
+                  <span className="text-xs uppercase text-green-600/80 dark:text-green-400/80 font-mono">
                     {new Date(petition.response.created_at).toLocaleDateString(
                       undefined,
                       { month: "short", day: "numeric", year: "numeric" },
@@ -802,7 +891,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                       <ClockIcon className="h-4 w-4 text-muted-foreground" />
                       <span>Update</span>
                     </div>
-                    <span className="text-xs text-muted-foreground font-mono">
+                    <span className="text-xs uppercase text-muted-foreground font-mono">
                       {new Date(update.created_at).toLocaleDateString(
                         undefined,
                         { month: "short", day: "numeric", year: "numeric" },
@@ -856,35 +945,60 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
         <div className={`mt-auto ${mobile ? "pt-4" : "pt-6"}`}>
           {isAdmin && petition.status === PetitionStatus.NeedsReview ? (
             <div className="space-y-2">
-              <Button
-                onClick={handleApprove}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-                disabled={isLoadingSign}
-              >
-                {isLoadingSign ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2Icon className="mr-2 h-4 w-4" />
+              <ButtonGroup className="">
+                {checkPerm(PERMISSIONS.APPROVE) && (
+                  <Button
+                    onClick={handleApprove}
+                    className=""
+                    disabled={isLoadingSign}
+                    variant="outline"
+                  >
+                    {isLoadingSign ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2Icon className="mr-2 h-4 w-4" />
+                    )}
+                    Approve & Publish
+                  </Button>
                 )}
-                Approve & Publish
-              </Button>
-              <Button
-                onClick={() => setIsReturnDialogOpen(true)}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                disabled={isLoadingSign}
-              >
-                <PenToolIcon className="mr-2 h-4 w-4" />
-                Return for Changes
-              </Button>
-              <Button
-                onClick={() => setIsRejectDialogOpen(true)}
-                variant="destructive"
-                className="w-full"
-                disabled={isLoadingSign}
-              >
-                <X className="mr-2 h-4 w-4" />
-                Reject
-              </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <MoreHorizontalIcon />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuLabel>
+                      <>Petition Actions</>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {checkPerm(PERMISSIONS.RETURN) && (
+                      <DropdownMenuItem
+                        disabled={isLoadingSign}
+                        onSelect={() => setIsReturnDialogOpen(true)}
+                      >
+                        <>
+                          <PenToolIcon />
+                          Return for Changes
+                        </>
+                      </DropdownMenuItem>
+                    )}
+                    {checkPerm(PERMISSIONS.REJECT) && (
+                      <DropdownMenuItem
+                        disabled={isLoadingSign}
+                        onSelect={() => setIsRejectDialogOpen(true)}
+                        variant="destructive"
+                      >
+                        <>
+                          <X />
+                          Reject
+                        </>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </ButtonGroup>
             </div>
           ) : petition.response || new Date(petition.expires) < new Date() ? (
             <Button disabled className="w-full">
@@ -966,6 +1080,16 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                               className="w-full mt-2"
                             >
                               Edit Petition (Admin)
+                            </Button>
+                          )}
+                          {checkPerm(PERMISSIONS.UNPUBLISH) && (
+                            <Button
+                              onClick={handleUnpublish}
+                              disabled={isLoadingSign}
+                              variant="destructive"
+                              className="w-full mt-2"
+                            >
+                              Unpublish (Remove)
                             </Button>
                           )}
                         </div>

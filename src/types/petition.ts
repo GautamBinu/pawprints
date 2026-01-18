@@ -32,6 +32,8 @@ export interface Petition {
   author: string;
   authorId?: string;
   signatures: number;
+  targetSignatures: number;
+  tier: number;
   created_at: string;
   status: PetitionStatus;
   expires: string;

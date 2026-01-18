@@ -8,7 +8,11 @@ import { prisma } from "@/lib/prisma";
 import { PetitionStatus, Petition } from "@/types/petition";
 import { z } from "zod";
 import sanitizeHtml from "sanitize-html";
-import { PETITION_DURATION_MS, PETITION_THRESHOLD } from "@/lib/constants";
+import {
+  PETITION_DURATION_MS,
+  PETITION_THRESHOLD,
+  PETITION_TIERS,
+} from "@/lib/constants";
 import {
   createNotification,
   notifyPetitionSubscribers,
@@ -17,6 +21,11 @@ import {
   markAllNotificationsRead as markAllNotificationsReadLib,
   getUnreadNotificationCount as getUnreadNotificationCountLib,
 } from "@/lib/notifications";
+import {
+  hasPermission,
+  getRequiredPermissionForAction,
+  PermissionAction,
+} from "@/lib/permissions";
 
 const sanitizeOptions = {
   allowedTags: [
@@ -76,6 +85,65 @@ export async function getPendingPetitions(): Promise<Petition[]> {
     tags: p.tags,
     author: p.author?.name || p.authorId,
     signatures: p.signatures,
+    targetSignatures: p.targetSignatures,
+    tier: p.tier,
+    created_at: p.createdAt.toISOString(),
+    status: p.status,
+    expires: p.expires.toISOString(),
+    last_signed: p.lastSigned?.toISOString() || null,
+    has_response: p.hasResponse,
+    response: p.response
+      ? {
+          id: p.response.id,
+          description: p.response.description,
+          created_at: p.response.createdAt.toISOString(),
+          author: p.response.author,
+        }
+      : null,
+    in_progress: p.inProgress,
+    updates: p.updates.map((u) => ({
+      id: u.id,
+      description: u.description,
+      created_at: u.createdAt.toISOString(),
+    })),
+    old_id: p.oldId,
+  }));
+}
+
+export async function getAdminPetitions(): Promise<Petition[]> {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) {
+    throw new Error("Unauthorized");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: tokens.decodedToken.uid },
+  });
+  if (!user || (!user.isStaff && !user.isSuperAdmin)) {
+    throw new Error("Unauthorized: Insufficient permissions");
+  }
+
+  const petitions = await prisma.petition.findMany({
+    include: {
+      tags: true,
+      author: true,
+      response: true,
+      updates: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return petitions.map((p) => ({
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    tags: p.tags,
+    author: p.author?.name || p.authorId,
+    signatures: p.signatures,
+    targetSignatures: p.targetSignatures,
+    tier: p.tier,
     created_at: p.createdAt.toISOString(),
     status: p.status,
     expires: p.expires.toISOString(),
@@ -154,10 +222,7 @@ export async function returnPetition(petitionId: number) {
   if (!tokens) throw new Error("Unauthorized");
   const userId = tokens.decodedToken.uid;
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (user?.isStaff !== true && user?.isSuperAdmin !== true) {
-    throw new Error("Unauthorized: Access denied");
-  }
+  await checkPermission(userId, "return");
 
   const petition = await prisma.petition.findUnique({
     where: { id: petitionId },
@@ -325,6 +390,8 @@ export async function updatePetition(
     tags: updatedPetition.tags,
     author: updatedPetition.author?.name || updatedPetition.authorId,
     signatures: updatedPetition.signatures,
+    targetSignatures: updatedPetition.targetSignatures,
+    tier: updatedPetition.tier,
     created_at: updatedPetition.createdAt.toISOString(),
     status: updatedPetition.status,
     expires: updatedPetition.expires.toISOString(),
@@ -386,6 +453,23 @@ export async function publishPetition(petitionId: number) {
   revalidatePath("/", "layout");
 }
 
+export async function updatePetitionTier(petitionId: number, tierId: number) {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) throw new Error("Unauthorized");
+  await checkPermission(tokens.decodedToken.uid, "manage_tiers");
+
+  const tier = PETITION_TIERS.find((t) => t.id === tierId);
+  if (!tier) throw new Error("Invalid tier");
+
+  await prisma.petition.update({
+    where: { id: petitionId },
+    data: {
+      tier: tierId,
+      targetSignatures: tier.threshold,
+    },
+  });
+}
+
 export async function getPetitions(): Promise<Petition[]> {
   const petitions = await prisma.petition.findMany({
     where: {
@@ -409,6 +493,8 @@ export async function getPetitions(): Promise<Petition[]> {
     tags: p.tags,
     author: p.author?.name || p.authorId,
     signatures: p.signatures,
+    targetSignatures: p.targetSignatures,
+    tier: p.tier,
     created_at: p.createdAt.toISOString(),
     status: p.status,
     expires: p.expires.toISOString(),
@@ -577,6 +663,8 @@ export async function getUserProfile() {
     tags: p.tags,
     author: p.author?.name || p.authorId,
     signatures: p.signatures,
+    targetSignatures: p.targetSignatures,
+    tier: p.tier,
     created_at: p.createdAt.toISOString(),
     status: p.status,
     expires: p.expires.toISOString(),
@@ -610,7 +698,8 @@ export async function getUserProfile() {
   };
 }
 
-// Admin/Staff secret stuff lol
+// This is basically a shorthand to check if the user is either staff or admin
+// Without actually fetching their permissions
 export async function checkAdminAccess() {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) return false;
@@ -623,39 +712,37 @@ export async function checkAdminAccess() {
   return user.isStaff || user.isSuperAdmin;
 }
 
-async function checkPermission(
-  userId: string,
-  action:
-    | "add_update"
-    | "response"
-    | "mark-in-progress"
-    | "unpublish"
-    | "editUpdate"
-    | "editResponse"
-    | "approve"
-    | "reject",
-) {
+export async function getStaffPermissions() {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) return { isStaff: false, isSuperAdmin: false, permissions: 0 };
+
+  const user = await prisma.user.findUnique({
+    where: { id: tokens.decodedToken.uid },
+  });
+
+  if (!user) return { isStaff: false, isSuperAdmin: false, permissions: 0 };
+
+  return {
+    isStaff: user.isStaff,
+    isSuperAdmin: user.isSuperAdmin,
+    permissions: user.permissions,
+  };
+}
+
+async function checkPermission(userId: string, action: PermissionAction) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error("User not found");
 
   if (user.isSuperAdmin) return true;
 
   if (user.isStaff) {
-    // Staff permissions
-    const staffPermissions = [
-      "add_update",
-      "response",
-      "mark-in-progress",
-      "unpublish",
-      "editUpdate",
-      "editResponse",
-      "approve",
-      "reject",
-    ];
-    if (staffPermissions.includes(action)) return true;
+    const requiredPermission = getRequiredPermissionForAction(action);
+    if (hasPermission(user.permissions, requiredPermission)) {
+      return true;
+    }
   }
 
-  throw new Error("Permission denied");
+  throw new Error("Unauthorized: Insufficient permissions");
 }
 
 export async function addUpdate(petitionId: number, description: string) {
@@ -919,6 +1006,8 @@ export async function getPetition(id: number) {
     author: petition.author?.name || petition.authorId,
     authorId: petition.authorId,
     signatures: petition.signatures,
+    targetSignatures: petition.targetSignatures,
+    tier: petition.tier,
     created_at: petition.createdAt.toISOString(),
     status: petition.status,
     expires: petition.expires.toISOString(),

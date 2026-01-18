@@ -46,15 +46,20 @@ interface PetitionFormProps {
 
 const categories = [
   "Academic Affairs",
-  "Campus Life",
-  "Facilities",
   "Student Services",
-  "Dining",
-  "Housing",
-  "Sustainability",
-  "Parking & Transportation",
+  "Campus Life (SG, Clubs, & Organizations)",
+  "Facilities & Parking",
   "Technology",
+  "Housing",
+  "Dining Services / Cafeteria",
+  "Commuter Transportation",
   "Health & Wellness",
+  "Safety & Security",
+  "Accessibility & Inclusion",
+  "Sustainability",
+  "Financial Services",
+  "Library & Learning Resources",
+  "Career Services",
   "Other",
 ];
 

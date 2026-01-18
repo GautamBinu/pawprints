@@ -290,3 +290,26 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Dark Mode Quill Overrides */
+.dark .ql-toolbar .ql-stroke {
+  stroke: var(--foreground);
+}
+
+.dark .ql-toolbar .ql-fill {
+  fill: var(--foreground);
+}
+
+.dark .ql-toolbar .ql-picker {
+  color: var(--foreground);
+}
+
+.dark .ql-toolbar button:hover .ql-stroke,
+.dark .ql-toolbar button.ql-active .ql-stroke {
+  stroke: var(--primary);
+}
+
+.dark .ql-toolbar button:hover .ql-fill,
+.dark .ql-toolbar button.ql-active .ql-fill {
+  fill: var(--primary);
+}

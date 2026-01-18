@@ -4,16 +4,17 @@ import { PrismaClient } from "@/generated/client/client";
 
 const connectionString = process.env.DATABASE_URL;
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+// Prevent multiple instances of Prisma Client in development
+const globalForPrisma = global as unknown as { prismaNew: PrismaClient };
 
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 
 export const prisma =
-  globalForPrisma.prisma ||
+  globalForPrisma.prismaNew ||
   new PrismaClient({
     adapter,
     log: ["query"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== "production") globalForPrisma.prismaNew = prisma;

@@ -3,6 +3,7 @@
 import React from "react";
 import PetitionCard from "./PetitionCard";
 import { Petition } from "../../types/petition";
+import { PETITION_THRESHOLD } from "@/lib/constants";
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 
@@ -66,7 +67,7 @@ const PetitionGrid: React.FC<PetitionGridProps> = ({
             key={petition.id}
             title={petition.title}
             currentSignatures={petition.signatures}
-            targetSignatures={150}
+            targetSignatures={petition.targetSignatures || PETITION_THRESHOLD}
             category={petition.tags[0]?.name || "General"}
             status={petition.status}
             showStatus={showStatus}

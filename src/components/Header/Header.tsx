@@ -22,12 +22,23 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { Menu } from "lucide-react";
+import { Menu, Sparkles } from "lucide-react";
 import { NotificationBell } from "../Notifications/NotificationBell";
 import { ModeToggle } from "@/components/mode-toggle";
 
-const Header = () => {
+interface HeaderProps {
+  hasAdminAccess?: boolean;
+}
+
+const Header = ({ hasAdminAccess }: HeaderProps) => {
   const { user } = useAuth();
+  const showDashboard =
+    hasAdminAccess ||
+    (user &&
+      ((user as any).isStaff ||
+        (user as any).isSuperAdmin ||
+        (user as any).customClaims?.staff ||
+        (user as any).customClaims?.superAdmin));
 
   return (
     <header className="border-b h-16 bg-[#F76902]">
@@ -45,6 +56,21 @@ const Header = () => {
         <div className="hidden md:flex items-center gap-4">
           <NavigationMenu>
             <NavigationMenuList className="gap-2">
+              {showDashboard && (
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      "bg-transparent text-white hover:bg-white/20 hover:text-white focus:bg-white/20 focus:text-white",
+                    )}
+                  >
+                    <Link href="/review" className="flex items-center gap-2">
+                      Dashboard
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              )}
               <NavigationMenuItem>
                 <NavigationMenuLink
                   asChild
@@ -64,7 +90,7 @@ const Header = () => {
                     "bg-transparent text-white hover:bg-white/20 hover:text-white focus:bg-white/20 focus:text-white",
                   )}
                 >
-                  <Link href="/">Browse</Link>
+                  <Link href="/explore">Browse</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
@@ -146,6 +172,14 @@ const Header = () => {
                 </SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-6 px-6 mt-6">
+                {showDashboard && (
+                  <Link
+                    href="/review"
+                    className="text-lg font-medium hover:text-[#F76902] transition-colors flex items-center gap-2"
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 <Link
                   href="#"
                   className="text-lg font-medium hover:text-[#F76902] transition-colors"
@@ -153,7 +187,7 @@ const Header = () => {
                   About
                 </Link>
                 <Link
-                  href="/browse"
+                  href="/explore"
                   className="text-lg font-medium hover:text-[#F76902] transition-colors"
                 >
                   Browse
