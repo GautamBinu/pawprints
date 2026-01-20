@@ -1,6 +1,8 @@
 # PawPrints
 
-PawPrints is a petition platform built for the RIT Dubai community (based on the actual PawPrints) to bridge the gap between students and administration. It allows users to create, sign, and track petitions that matter to campus life. This project is built using **Next.js 15**, utilizing **PostgreSQL** for data persistence and **Firebase** for authentication.
+[PawPrints](https://pawprints.ritdubai.ae) is a petition platform built for the [RIT Dubai](https://rit.edu/dubai) community (based on the actual [PawPrints](https://pawprints.rit.edu)) to bridge the gap between students and administration. It allows users to create, sign, and track petitions that matter to campus life. This project is built using Next.js 15, utilizing PostgreSQL for data persistence, and Firebase for authentication.
+
+![PawPrints](docs/screenshot.png)
 
 ## Getting Started
 
@@ -33,7 +35,6 @@ Clone the `.env.example` file to `.env` and fill in the required environment var
 cp .env.example .env
 ```
 
-**Note:** The application uses `next-firebase-auth-edge` for handling authentication via middleware, and a separate `firebase-admin` initialization for server-side logic. Make sure to populate the specific keys required for both.
 
 ### 4. Database Setup
 
@@ -49,13 +50,13 @@ npx prisma db push
 
 #### Seeding Data
 
-To populate the database with initial tags, mock users, and example petitions (e.g., "Bring Back the Taco Bar"), run the seed script:
+To populate the database with initial tags, mock users, and example petitions, run the seed script:
 
 ```bash
 npx prisma db seed
 ```
 
-This will run `prisma/seed.ts` and create standard tags (Housing, Dining, etc.), mock users (Student, Admin, Faculty), and mock petitions in various states (Published, In Progress, Expired, etc.). 
+This will run `prisma/seed.ts` and create standard tags, mock users, and mock petitions in various states. 
 Make sure to remove or modify mock data before deploying to production.
 
 ### 5. Running the Development Server
@@ -89,20 +90,16 @@ npx prisma migrate reset
 ## Firebase Setup
 
 ### Authentication
-PawPrints uses **Firebase** to authenticate users. You must use the Google provider in your Firebase Console. Make sure to restrict the OAuth redirect domains to your development and production URLs. To make sure only RIT users can login, we also make sure the Google Cloud Project associated with the Firebase project only allows users from the same organization (g.rit.edu) to sign in. Checkout this [StackOverflow thread](https://stackoverflow.com/questions/64765394/how-can-i-enable-the-internal-option-in-the-oauth-consent-screen) on how to do that.
+To make sure only RIT users can login, we also make sure the Google Cloud Project associated with the Firebase project only allows users from the same organization (g.rit.edu) to sign in. Checkout this [StackOverflow thread](https://stackoverflow.com/questions/64765394/how-can-i-enable-the-internal-option-in-the-oauth-consent-screen) on how to do that.
 
 ## UI & Theming
 
 ### Shadcn UI
-This project uses [Shadcn UI](https://ui.shadcn.com/) components. These are reusable components built using Radix UI and Tailwind CSS. Components are located in `src/components/ui`.
-
-To add a new component (e.g., button):
+Components are located in `src/components/ui`. To add a new component (e.g., button):
 ```bash
 npx shadcn@latest add button
 ```
 
-### Tailwind Configuration
-Tailwind v4 is configured in `src/app/globals.css` using the `@theme` directive. We use CSS variables for theming (oklch color space). For dark mode, we modify the CSS variables supported via the `.dark` class strategy. As for the font, the Geist font family is used via `next/font`. To customize the theme, edit the `:root` and `.dark` variables in `src/app/globals.css`.
 
 ## Deploying to prod
 
@@ -117,9 +114,8 @@ npx prisma migrate deploy
 
 ## Contributing
 
-Fork the repository and create a pull request for any changes or improvements. Please ensure code quality and consistency with existing patterns. 
-- Ensure `npm run build` passes before pushing.
--   If you modify the database schema, include the necessary migration steps or update the seed script if data structures change.
--   Follow the existing Shadcn/Tailwind patterns for UI consistency.
-
 Please see `CONTRIBUTING.md` for more details.
+
+## License
+
+MIT License.

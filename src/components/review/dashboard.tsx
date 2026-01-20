@@ -49,12 +49,14 @@ import {
   Filter,
   ArrowLeft,
   ChevronLeft,
+  PenTool,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   approvePetition,
   rejectPetition,
+  returnPetition,
   unpublishPetition,
   addResponse,
   addUpdate,
@@ -137,7 +139,8 @@ export function ReviewDashboard({
           p.status === PetitionStatus.NeedsReview) ||
         (statusFilter === "published" &&
           p.status === PetitionStatus.Published) ||
-        (statusFilter === "removed" && p.status === PetitionStatus.Removed);
+        (statusFilter === "removed" && p.status === PetitionStatus.Removed) ||
+        (statusFilter === "returned" && p.status === PetitionStatus.Returned);
 
       let matchesAttribute = true;
       const now = new Date();
@@ -231,6 +234,7 @@ export function ReviewDashboard({
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="published">Live</SelectItem>
+                <SelectItem value="returned">Returned</SelectItem>
                 <SelectItem value="removed">Rejected</SelectItem>
               </SelectContent>
             </Select>
@@ -328,6 +332,12 @@ export function ReviewDashboard({
                       >
                         {getStatusLabel(petition.status)}
                       </Badge>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0 h-5 font-normal rounded-full"
+                      >
+                        {petition.tags[0]?.name}
+                      </Badge>
                     </div>
                     <span className="text-xs text-muted-foreground tabular-nums">
                       {petition.signatures} sigs
@@ -423,10 +433,9 @@ export function ReviewDashboard({
               <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8 sticky">
                 {selectedPetition.status === PetitionStatus.NeedsReview && (
                   <>
-                    <p className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50/50 dark:bg-amber-950/50 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-                      <AlertCircle className="h-4 w-4" />
-                      This petition is pending review. Please approve or reject
-                      it.
+                    <p className="flex items-center gap-2 text-xl text-amber-600">
+                      This petition is pending review. Please approve, reject,
+                      or return it for changes.
                     </p>
                   </>
                 )}
@@ -449,6 +458,19 @@ export function ReviewDashboard({
                           <CheckCircle2 className="mr-2 h-4 w-4" />
                         )}
                         Approve
+                      </Button>
+                      <Button
+                        className="bg-orange-600 hover:bg-orange-700 text-white flex-1 md:flex-none"
+                        disabled={isLoading}
+                        onClick={() =>
+                          handleAction(
+                            () => returnPetition(selectedPetition.id),
+                            "Petition returned for changes",
+                          )
+                        }
+                      >
+                        <PenTool className="mr-2 h-4 w-4" />
+                        Return
                       </Button>
                       <Button
                         variant="destructive"
@@ -565,7 +587,7 @@ export function ReviewDashboard({
                         <Badge
                           key={tag.id}
                           variant="secondary"
-                          className="font-mono text-xs"
+                          className="text-xs"
                         >
                           {tag.name}
                         </Badge>
@@ -620,7 +642,7 @@ export function ReviewDashboard({
                                   >
                                     {new Date(
                                       update.created_at,
-                                    ).toLocaleDateString()}
+                                    ).toLocaleDateString("en-GB")}
                                   </time>
                                 </div>
 
@@ -802,6 +824,8 @@ function getStatusBadgeVariant(status: number) {
       return "default";
     case PetitionStatus.NeedsReview:
       return "secondary";
+    case PetitionStatus.Returned:
+      return "secondary";
     case PetitionStatus.Removed:
       return "destructive";
     default:
@@ -819,6 +843,8 @@ function getStatusLabel(status: number) {
       return "Rejected";
     case PetitionStatus.NeedsReview:
       return "Pending";
+    case PetitionStatus.Returned:
+      return "Returned";
     default:
       return "Unknown";
   }

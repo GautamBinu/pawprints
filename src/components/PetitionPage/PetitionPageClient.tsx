@@ -143,9 +143,6 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
   initialPetition: initialPetitionProp,
   initialIsAuthor = false,
   onPetitionUpdated,
-  isReviewMode = false,
-  onApprove,
-  onReject,
 }) => {
   const { user } = useAuth();
   const [petition, setPetition] = useState<Petition>(initialPetitionProp);
@@ -475,11 +472,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
       </h2>
       <div className="flex flex-wrap gap-2 mt-8">
         {petition.tags.map((tag) => (
-          <Badge
-            key={tag.id}
-            variant="secondary"
-            className="font-mono text-xs uppercase"
-          >
+          <Badge key={tag.id} variant="secondary" className="text-xs">
             {tag.name}
           </Badge>
         ))}
@@ -567,7 +560,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                       className="text-xs text-muted-foreground font-mono"
                       dateTime={update.created_at}
                     >
-                      {new Date(update.created_at).toLocaleDateString()}
+                      {new Date(update.created_at).toLocaleDateString("en-GB")}
                     </time>
                   </div>
 
@@ -691,7 +684,9 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                   className="text-xs text-muted-foreground font-mono"
                   dateTime={petition.response.created_at}
                 >
-                  {new Date(petition.response.created_at).toLocaleDateString()}
+                  {new Date(petition.response.created_at).toLocaleDateString(
+                    "en-GB",
+                  )}
                 </time>
               </header>
 

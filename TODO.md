@@ -1,13 +1,13 @@
 - [X] Canonical URL redirect to petition ID
 - [x] About page
 - [x] robots, security, privacy, canonical pages
-- [ ] Fix: copy link does not work on mobile
+- [X] Fix: copy link does not work on mobile
 - [x] Share link button on mobile devices
 - [x] Petition page by itself /p/<petition-id>
 - [x] Petition threshold 300?
   - [x] Change to 150
 - [X] Petition expiry date 6 months
-- [ ] Staff perms confirmed?
+- [X] Staff perms confirmed?
 - [x] In-app notifications
 - [ ] Native push notifications
 - [ ] Emails
@@ -25,7 +25,7 @@
 - [X] Fully gated, main page only for signed-in users
 - [ ] Support images in Quill
 - [X] Only draft if quit creation
-- [ ] Dashboard for editing responses and updates
+- [X] Dashboard for editing responses and updates
 - [X] Delete published petiton for admins
 - [X] Fix: Colored backgrounds for petitions in dark mode
 - [ ] Lifecycle changes
@@ -33,7 +33,7 @@
   - [X] Reject petition with request for review
   - [ ] Archive petitions after expiry date
 - [ ] Superadmin logging
-- [ ] Fix: show petition status on cards too maybe?
+- [X] Fix: show petition status on cards too maybe?
 - [ ] Change spinner to something more aesthetic?
 - [ ] Big feat: reporting system
 

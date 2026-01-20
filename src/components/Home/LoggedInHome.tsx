@@ -61,7 +61,7 @@ export default function LoggedInHome({ trendingPetitions }: LoggedInHomeProps) {
 
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="font-bold font-mono uppercase">Popular Petitions</h2>
+          <h2 className="font-bold font-mono uppercase">Latest Petitions</h2>
         </div>
 
         {trendingPetitions.length > 0 ? (

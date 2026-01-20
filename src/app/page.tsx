@@ -18,7 +18,10 @@ export default async function Home() {
   const petitions = await getPetitions();
 
   const trendingPetitions = [...petitions]
-    .sort((a, b) => b.signatures - a.signatures)
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
     .slice(0, 6);
 
   return (
