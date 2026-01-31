@@ -73,9 +73,8 @@ export default function PublicHome() {
             <div className="space-y-4">
               <h3 className="text-xl font-bold">3. Share & Gather Support</h3>
               <p className="text-muted-foreground">
-                Share your petition with the community. You have 6 months to
-                reach the threshold of 150 signatures to receive an official
-                response.
+                Share your petition with the community. Once it reaches the
+                signature threshold, you will receive an official response.
               </p>
             </div>
           </div>

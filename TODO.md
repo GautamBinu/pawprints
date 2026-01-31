@@ -15,12 +15,12 @@
   - [ ] pawprints ritdubai mail server
 - [ ] Prod PostgreSQL database
 - [ ] PWA?
-- [ ] Code docs
+- [X] Code docs
 - [ ] Application hosting
 - [ ] Umami analytics
 - [x] Dark mode
-- [ ] More filters for petitions, especially by response, update, and date status
-- [ ] Fix: logout page
+- [X] More filters for petitions, especially by response, update, and date status
+- [X] Fix: logout page
 - [X] Fix: mobile responsiveness for some pages
 - [X] Fully gated, main page only for signed-in users
 - [ ] Support images in Quill
@@ -36,6 +36,9 @@
 - [X] Fix: show petition status on cards too maybe?
 - [ ] Change spinner to something more aesthetic?
 - [ ] Big feat: reporting system
+- [ ] Consistent icons
+- [ ] Fix: Quill editor toolbar color in dark mode
+- [ ] Banner images / pictures
 
 ---
 

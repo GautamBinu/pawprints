@@ -67,7 +67,7 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-lg">
+      <Card className="w-full max-w-sm shadow-lg">
         <CardHeader className="space-y-4 flex flex-col items-center text-center pb-2">
           <div className="hidden relative w-24 h-16">
             <Image
@@ -82,7 +82,7 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
             <CardTitle className="text-2xl font-bold text-[#F76902]">
               PawPrints
             </CardTitle>
-            <CardDescription>Your voice matters at RIT</CardDescription>
+            <CardDescription>Your voice matters at RIT Dubai</CardDescription>
           </div>
         </CardHeader>
 
@@ -131,7 +131,7 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
             </Button>
           </div>
 
-          <div className="text-xs text-muted-foreground text-center space-y-4 pt-4">
+          <div className="text-sm text-semibold text-muted-foreground text-center space-y-4 pt-4">
             <p>
               By signing in, you agree to use PawPrints responsibly. You also
               agree to the{" "}
@@ -146,9 +146,9 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
               .
             </p>
 
-            <Separator className="my-4" />
+            <Separator className="my-4 mt-12" />
 
-            <p className="text-[10px] text-gray-400">
+            <p className="text-xs text-gray-400">
               This site is protected by reCAPTCHA and the Google{" "}
               <a
                 href="https://policies.google.com/privacy"

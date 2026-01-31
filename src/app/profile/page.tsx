@@ -33,6 +33,7 @@ function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const activeTab = searchParams.get("tab") ?? "created";
 
   useEffect(() => {
     async function fetchProfile() {
@@ -47,6 +48,13 @@ function ProfileContent() {
     }
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    // Redirect /profile/settings to /profile?tab=settings
+    if (pathname.endsWith("/profile/settings")) {
+      router.replace("/profile?tab=settings");
+    }
+  }, [pathname, router]);
 
   const handlePetitionClick = (petition: Petition) => {
     router.push(`/petitions/${petition.id}`);
@@ -119,7 +127,7 @@ function ProfileContent() {
         </Card>
 
         <div className="flex-1 w-full min-w-0">
-          <Tabs defaultValue="created" className="w-full">
+          <Tabs defaultValue={activeTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="created">Created Petitions</TabsTrigger>
               <TabsTrigger value="signed">Signed Petitions</TabsTrigger>
