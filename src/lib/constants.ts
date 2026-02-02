@@ -21,6 +21,25 @@ export const PETITION_TIERS = [
   },
 ] as const;
 
+export const PETITION_CATEGORIES = [
+  "Academic Affairs",
+  "Student Services",
+  "Campus Life (SG, Clubs, & Organizations)",
+  "Facilities & Parking",
+  "Technology",
+  "Housing",
+  "Dining Services / Cafeteria",
+  "Commuter Transportation",
+  "Health & Wellness",
+  "Safety & Security",
+  "Accessibility & Inclusion",
+  "Sustainability",
+  "Financial Services",
+  "Library & Learning Resources",
+  "Career Services",
+  "Other",
+] as const;
+
 export const PETITION_DURATION_DAYS = 180;
 export const PETITION_DURATION_MS =
   PETITION_DURATION_DAYS * 24 * 60 * 60 * 1000;

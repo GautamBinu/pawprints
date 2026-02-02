@@ -2,6 +2,7 @@
 
 import { PETITION_THRESHOLD, PETITION_TIERS } from "@/lib/constants";
 
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,8 +20,10 @@ import {
   LinkIcon,
   X,
   Share2,
+  ArrowLeft,
 } from "lucide-react";
 import { useAuth } from "../../app/auth/AuthContext";
+import { useVisitedPetitions } from "@/hooks/use-visited-petitions";
 import {
   signPetition,
   unsignPetition,
@@ -39,6 +42,7 @@ import {
 } from "../../app/actions";
 import { hasPermission, PERMISSIONS } from "../../lib/permissions";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -145,7 +149,13 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
   onPetitionUpdated,
 }) => {
   const { user } = useAuth();
+  const router = useRouter();
   const [petition, setPetition] = useState<Petition>(initialPetitionProp);
+  const { markVisited } = useVisitedPetitions();
+
+  React.useEffect(() => {
+    markVisited(petition.id);
+  }, [petition.id, markVisited]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -470,13 +480,6 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
       <h2 id="description-heading" className="sr-only">
         Description
       </h2>
-      <div className="flex flex-wrap gap-2 mt-8">
-        {petition.tags.map((tag) => (
-          <Badge key={tag.id} variant="secondary" className="text-xs">
-            {tag.name}
-          </Badge>
-        ))}
-      </div>
       <div
         className="text-foreground text-base leading-relaxed prose prose-base max-w-none dark:prose-invert [&_h1]:!text-foreground [&_h2]:!text-foreground [&_h3]:!text-foreground [&_p]:!text-foreground [&_strong]:!text-foreground [&_li]:!text-foreground py-8"
         dangerouslySetInnerHTML={{ __html: petition.description }}
@@ -1253,13 +1256,45 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
       <div className="mx-auto">
         <div className="flex flex-col lg:flex-row lg:justify-center lg:gap-4 min-h-screen">
           <div className="flex-1 p-6 lg:p-8 lg:pr-12 max-w-5xl">
+            <Button
+              variant="link"
+              className="!px-0 mb-4 text-muted-foreground hover:text-foreground"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            {new Date(petition.expires) < new Date() &&
+            petition.status === PetitionStatus.Published ? (
+              <Alert
+                variant="destructive"
+                className="w-full font-bold mb-6 px-0 rounded-none border-0 border-b"
+              >
+                <AlertDescription className="text-xs md:text-base">
+                  This petition has expired and is no longer accepting
+                  signatures.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
             {!isEditing && (
-              <div className="mb-8">
+              <div className="mb-8 border-b pb-4">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {petition.tags.map((tag) => (
+                    <Badge
+                      key={tag.id}
+                      variant="secondary"
+                      className="text-base"
+                    >
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
                 <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">
                   {petition.title}
                 </h1>
                 <p className="text-muted-foreground text-lg">
-                  Petition by {petition.author}
+                  By {petition.author}
                 </p>
               </div>
             )}

@@ -167,18 +167,44 @@ export async function getAdminPetitions(): Promise<Petition[]> {
   }));
 }
 
-export async function approvePetition(id: number) {
+export async function approvePetition(
+  id: number,
+  tierId?: number,
+  categoryName?: string,
+) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) {
     throw new Error("Unauthorized");
   }
   await checkPermission(tokens.decodedToken.uid, "approve");
 
+  const data: any = {
+    status: PetitionStatus.Published,
+  };
+
+  if (tierId) {
+    const tier = PETITION_TIERS.find((t) => t.id === tierId);
+    if (tier) {
+      data.tier = tierId;
+      data.targetSignatures = tier.threshold;
+    }
+  }
+
+  if (categoryName) {
+    data.tags = {
+      set: [],
+      connectOrCreate: [
+        {
+          where: { name: categoryName },
+          create: { name: categoryName },
+        },
+      ],
+    };
+  }
+
   const petition = await prisma.petition.update({
     where: { id },
-    data: {
-      status: PetitionStatus.Published,
-    },
+    data,
   });
 
   await createNotification(
@@ -311,7 +337,7 @@ export async function createPetition(data: {
     },
   });
 
-  revalidatePath("/profile");
+  revalidatePath(`/petitions/${petition.id}`, "page");
 
   return petition;
 }
@@ -451,23 +477,6 @@ export async function publishPetition(petitionId: number) {
     },
   });
   revalidatePath("/", "layout");
-}
-
-export async function updatePetitionTier(petitionId: number, tierId: number) {
-  const tokens = await getTokens(await cookies(), authConfig);
-  if (!tokens) throw new Error("Unauthorized");
-  await checkPermission(tokens.decodedToken.uid, "manage_tiers");
-
-  const tier = PETITION_TIERS.find((t) => t.id === tierId);
-  if (!tier) throw new Error("Invalid tier");
-
-  await prisma.petition.update({
-    where: { id: petitionId },
-    data: {
-      tier: tierId,
-      targetSignatures: tier.threshold,
-    },
-  });
 }
 
 export async function getPetitions(): Promise<Petition[]> {

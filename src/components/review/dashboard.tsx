@@ -1,13 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Petition, PetitionStatus } from "@/types/petition";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -49,7 +50,8 @@ import {
   Filter,
   ArrowLeft,
   ChevronLeft,
-  PenTool,
+  Undo2,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -60,9 +62,12 @@ import {
   unpublishPetition,
   addResponse,
   addUpdate,
-  updatePetitionTier,
 } from "@/app/actions";
-import { PETITION_THRESHOLD, PETITION_TIERS } from "@/lib/constants";
+import {
+  PETITION_THRESHOLD,
+  PETITION_TIERS,
+  PETITION_CATEGORIES,
+} from "@/lib/constants";
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -115,17 +120,20 @@ export function ReviewDashboard({
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState("");
+  const [pendingTier, setPendingTier] = useState<number | null>(null);
+  const [pendingCategory, setPendingCategory] = useState<string>("");
 
   const selectedPetition = useMemo(
     () => petitions.find((p) => p.id === selectedPetitionId),
     [petitions, selectedPetitionId],
   );
 
-  const uniqueTags = useMemo(() => {
-    const tags = new Set<string>();
-    petitions.forEach((p) => p.tags.forEach((t) => tags.add(t.name)));
-    return Array.from(tags).sort();
-  }, [petitions]);
+  useEffect(() => {
+    if (selectedPetition) {
+      setPendingTier(selectedPetition.tier || 1);
+      setPendingCategory(selectedPetition.tags[0]?.name || "General");
+    }
+  }, [selectedPetition]);
 
   const filteredPetitions = useMemo(() => {
     return petitions.filter((p) => {
@@ -258,9 +266,9 @@ export function ReviewDashboard({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {uniqueTags.map((tag) => (
-                <SelectItem key={tag} value={tag}>
-                  {tag}
+              {PETITION_CATEGORIES.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -431,13 +439,91 @@ export function ReviewDashboard({
 
             <div className="flex-1 overflow-y-auto">
               <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8 sticky">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">
+                      {selectedPetition.signatures} signatures
+                    </span>
+                    <span className="text-muted-foreground">
+                      {selectedPetition.targetSignatures || PETITION_THRESHOLD}{" "}
+                      goal
+                    </span>
+                  </div>
+                  <Progress
+                    value={Math.min(
+                      (selectedPetition.signatures /
+                        (selectedPetition.targetSignatures ||
+                          PETITION_THRESHOLD)) *
+                        100,
+                      100,
+                    )}
+                    className={cn(
+                      "h-3 bg-muted",
+                      (selectedPetition.signatures /
+                        (selectedPetition.targetSignatures ||
+                          PETITION_THRESHOLD)) *
+                        100 >=
+                        100
+                        ? "[&>div]:bg-green-500"
+                        : (selectedPetition.signatures /
+                              (selectedPetition.targetSignatures ||
+                                PETITION_THRESHOLD)) *
+                              100 >=
+                            50
+                          ? "[&>div]:bg-yellow-500"
+                          : "[&>div]:bg-primary",
+                    )}
+                  />
+                </div>
+
                 {selectedPetition.status === PetitionStatus.NeedsReview && (
-                  <>
+                  <div className="space-y-4 w-full">
                     <p className="flex items-center gap-2 text-xl text-amber-600">
                       This petition is pending review. Please approve, reject,
                       or return it for changes.
                     </p>
-                  </>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Category</Label>
+                        <Select
+                          value={pendingCategory}
+                          onValueChange={setPendingCategory}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PETITION_CATEGORIES.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tier Level</Label>
+                        <Select
+                          value={pendingTier?.toString()}
+                          onValueChange={(val) => setPendingTier(parseInt(val))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Tier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PETITION_TIERS.map((tier) => (
+                              <SelectItem
+                                key={tier.id}
+                                value={tier.id.toString()}
+                              >
+                                {tier.name} ({tier.threshold} sigs)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
                 )}
                 <div className="flex flex-wrap items-center gap-2 rounded-lg">
                   {selectedPetition.status === PetitionStatus.NeedsReview && (
@@ -447,7 +533,12 @@ export function ReviewDashboard({
                         disabled={isLoading}
                         onClick={() =>
                           handleAction(
-                            () => approvePetition(selectedPetition.id),
+                            () =>
+                              approvePetition(
+                                selectedPetition.id,
+                                pendingTier || undefined,
+                                pendingCategory,
+                              ),
                             "Petition approved",
                           )
                         }
@@ -469,7 +560,7 @@ export function ReviewDashboard({
                           )
                         }
                       >
-                        <PenTool className="mr-2 h-4 w-4" />
+                        <Undo2 className="mr-2 h-4 w-4" />
                         Return
                       </Button>
                       <Button
@@ -507,46 +598,10 @@ export function ReviewDashboard({
                           setUpdateDialogOpen(true);
                         }}
                       >
-                        <Plus className="mr-2 h-4 w-4" />
+                        <Megaphone className="mr-2 h-4 w-4" />
                         Update
                       </Button>
-                      <div className="flex-1 md:flex-none min-w-[140px]">
-                        <Select
-                          value={
-                            selectedPetition.tier > 0
-                              ? selectedPetition.tier.toString()
-                              : ""
-                          }
-                          onValueChange={(val) =>
-                            handleAction(
-                              () =>
-                                updatePetitionTier(
-                                  selectedPetition.id,
-                                  parseInt(val),
-                                ),
-                              "Tier updated",
-                            )
-                          }
-                          disabled={isLoading}
-                        >
-                          <SelectTrigger className="h-9 w-full">
-                            <SelectValue placeholder="Set Tier" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {PETITION_TIERS.map((tier) => (
-                              <SelectItem
-                                key={tier.id}
-                                value={tier.id.toString()}
-                              >
-                                <span className="font-medium">{tier.name}</span>
-                                <span className="text-muted-foreground ml-2">
-                                  ({tier.threshold})
-                                </span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+
                       <div className="hidden md:block flex-1" />
                       <Button
                         size="sm"

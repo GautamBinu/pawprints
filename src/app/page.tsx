@@ -17,12 +17,7 @@ export default async function Home() {
 
   const petitions = await getPetitions();
 
-  const trendingPetitions = [...petitions]
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )
-    .slice(0, 6);
+  const trendingPetitions = petitions;
 
   return (
     <Suspense

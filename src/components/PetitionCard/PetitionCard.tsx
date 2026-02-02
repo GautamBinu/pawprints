@@ -1,4 +1,5 @@
 import React from "react";
+import { useVisitedPetitions } from "@/hooks/use-visited-petitions";
 import {
   Card,
   CardContent,
@@ -10,28 +11,40 @@ import { Badge } from "../ui/badge";
 import { PetitionStatus } from "../../types/petition";
 
 interface PetitionCardProps {
+  id?: number;
   title: string;
   currentSignatures: number;
   targetSignatures: number;
   category: string;
   status?: number;
+  expires?: string;
   showStatus?: boolean;
   onClick?: () => void;
 }
 
 const PetitionCard: React.FC<PetitionCardProps> = ({
+  id,
   title,
   currentSignatures,
   targetSignatures,
   category,
   status,
+  expires,
   showStatus = false,
   onClick,
 }) => {
-  const progressPercentage = Math.min(
+  const { isVisited } = useVisitedPetitions();
+  const visited = id ? isVisited(id) : false;
+  const isExpired = expires ? new Date(expires) < new Date() : false;
+
+  let progressPercentage = Math.min(
     (currentSignatures / targetSignatures) * 100,
     100,
   );
+
+  if (currentSignatures > 0 && progressPercentage < 5) {
+    progressPercentage = 5;
+  }
   const remainingSignatures = Math.max(targetSignatures - currentSignatures, 0);
 
   const getCategoryColor = (category: string) => {
@@ -100,7 +113,13 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
 
   return (
     <Card
-      className="h-full flex flex-col hover:shadow-lg transition-all duration-300 cursor-pointer relative overflow-hidden"
+      className={`h-full flex flex-col hover:shadow-lg transition-all duration-300 cursor-pointer relative overflow-hidden ${
+        isExpired
+          ? "bg-gray-200/50 dark:bg-gray-800/50 opacity-75 grayscale"
+          : visited
+            ? "bg-muted/30"
+            : ""
+      }`}
       onClick={onClick}
     >
       <CardHeader className="font-mono uppercase pb-2">

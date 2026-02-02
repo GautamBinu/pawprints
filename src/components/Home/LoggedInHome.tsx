@@ -1,15 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Petition } from "@/types/petition";
-import PetitionCard from "@/components/PetitionCard/PetitionCard";
 import { useRouter } from "next/navigation";
 import { PlusCircle, Search, ClipboardCheck } from "lucide-react";
-import { PETITION_THRESHOLD } from "@/lib/constants";
 import { checkAdminAccess } from "@/app/actions";
+import { SearchBar, PetitionGrid, SearchResults } from "@/components";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface LoggedInHomeProps {
   trendingPetitions: Petition[];
@@ -18,11 +18,54 @@ interface LoggedInHomeProps {
 export default function LoggedInHome({ trendingPetitions }: LoggedInHomeProps) {
   const { user } = useAuth();
   const router = useRouter();
-  const [isAdmin, setIsAdmin] = React.useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  React.useEffect(() => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("All");
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+
+  const handlePetitionClick = (petition: Petition) => {
+    router.push(`/petitions/${petition.id}`);
+  };
+
+  useEffect(() => {
+    if (searchTerm !== debouncedSearchTerm) {
+      setIsSearchLoading(true);
+    } else {
+      setIsSearchLoading(false);
+    }
+  }, [searchTerm, debouncedSearchTerm]);
+
+  useEffect(() => {
     checkAdminAccess().then(setIsAdmin).catch(console.error);
   }, []);
+
+  const filteredPetitions = useMemo(() => {
+    const sortedPetitions = [...trendingPetitions].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+
+    if (debouncedSearchTerm === "" && selectedFilter === "All") {
+      return sortedPetitions;
+    }
+
+    return sortedPetitions.filter((petition) => {
+      const matchesSearch =
+        debouncedSearchTerm === "" ||
+        petition.title
+          .toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase());
+
+      const matchesFilter =
+        selectedFilter === "All" ||
+        petition.tags.some((tag) => tag.name === selectedFilter);
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [trendingPetitions, debouncedSearchTerm, selectedFilter]);
 
   return (
     <div className="container mx-auto px-6 py-24">
@@ -59,32 +102,37 @@ export default function LoggedInHome({ trendingPetitions }: LoggedInHomeProps) {
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="font-bold font-mono uppercase">Latest Petitions</h2>
+      <div className="w-full flex flex-col bg-background text-foreground">
+        <SearchBar
+          onSearchChange={setSearchTerm}
+          onFilterChange={setSelectedFilter}
+          searchTerm={searchTerm}
+          selectedFilter={selectedFilter}
+        />
+        <div className="flex flex-col mt-8 w-full">
+          <SearchResults
+            isLoading={isSearchLoading}
+            resultsCount={filteredPetitions.length}
+            searchTerm={debouncedSearchTerm}
+            selectedFilter={selectedFilter}
+          />
+          {!isSearchLoading &&
+          filteredPetitions.length === 0 &&
+          debouncedSearchTerm === "" &&
+          selectedFilter === "All" ? (
+            <div className="text-center py-12 bg-muted/30 rounded-lg">
+              <p className="text-muted-foreground text-lg">
+                No petitions at the moment. Why not start one?
+              </p>
+            </div>
+          ) : (
+            <PetitionGrid
+              petitions={filteredPetitions}
+              isLoading={isSearchLoading}
+              onPetitionClick={handlePetitionClick}
+            />
+          )}
         </div>
-
-        {trendingPetitions.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trendingPetitions.map((petition) => (
-              <PetitionCard
-                key={petition.id}
-                title={petition.title}
-                category={petition.tags[0]?.name || "Other"}
-                currentSignatures={petition.signatures}
-                targetSignatures={PETITION_THRESHOLD}
-                status={petition.status}
-                onClick={() => router.push(`/petitions/${petition.id}`)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-muted/30 rounded-lg">
-            <p className="text-muted-foreground text-lg">
-              No trending petitions at the moment. Why not start one?
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

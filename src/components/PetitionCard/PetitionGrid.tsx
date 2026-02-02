@@ -65,11 +65,13 @@ const PetitionGrid: React.FC<PetitionGridProps> = ({
         {petitions.map((petition) => (
           <PetitionCard
             key={petition.id}
+            id={petition.id}
             title={petition.title}
             currentSignatures={petition.signatures}
             targetSignatures={petition.targetSignatures || PETITION_THRESHOLD}
             category={petition.tags[0]?.name || "General"}
             status={petition.status}
+            expires={petition.expires}
             showStatus={showStatus}
             onClick={() => onPetitionClick(petition)}
           />

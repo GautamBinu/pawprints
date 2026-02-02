@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { PETITION_CATEGORIES } from "@/lib/constants";
 
 interface SearchBarProps {
   onSearchChange?: (searchTerm: string) => void;
@@ -23,25 +24,6 @@ interface SearchBarProps {
   searchTerm?: string;
   selectedFilter?: string;
 }
-
-const categories = [
-  "Academic Affairs",
-  "Student Services",
-  "Campus Life (SG, Clubs, & Organizations)",
-  "Facilities & Parking",
-  "Technology",
-  "Housing",
-  "Dining Services / Cafeteria",
-  "Commuter Transportation",
-  "Health & Wellness",
-  "Safety & Security",
-  "Accessibility & Inclusion",
-  "Sustainability",
-  "Financial Services",
-  "Library & Learning Resources",
-  "Career Services",
-  "Other",
-];
 
 const SearchBar: React.FC<SearchBarProps> = ({
   onSearchChange,
@@ -94,7 +76,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             <SelectValue placeholder={`Filter: ${localSelectedFilter}`} />
           </SelectTrigger>
           <SelectContent>
-            {categories.map((category) => (
+            {PETITION_CATEGORIES.map((category) => (
               <SelectItem key={category} value={category}>
                 {category}
               </SelectItem>
