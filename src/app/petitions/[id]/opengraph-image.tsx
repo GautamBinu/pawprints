@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+
 import { prisma } from "@/lib/prisma";
 import { PetitionStatus } from "@/types/petition";
 
@@ -16,16 +15,20 @@ export const contentType = "image/png";
 export default async function Image({ params }: { params: { id: string } }) {
   const petitionId = parseInt(params.id);
 
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const domain = process.env.VERCEL_URL || "localhost:3000";
+  const baseUrl = `${protocol}://${domain}`;
+
   // Load Geist fonts from public/fonts directory for reliable production deployment
-  const geistSansBold = await readFile(
-    join(process.cwd(), "public/fonts/Geist-Bold.ttf"),
+  const geistSansBold = await fetch(`${baseUrl}/fonts/Geist-Bold.ttf`).then(
+    (res) => res.arrayBuffer(),
   );
-  const geistSansBlack = await readFile(
-    join(process.cwd(), "public/fonts/Geist-Black.ttf"),
+  const geistSansBlack = await fetch(`${baseUrl}/fonts/Geist-Black.ttf`).then(
+    (res) => res.arrayBuffer(),
   );
-  const geistMonoSemiBold = await readFile(
-    join(process.cwd(), "public/fonts/GeistMono-SemiBold.ttf"),
-  );
+  const geistMonoSemiBold = await fetch(
+    `${baseUrl}/fonts/GeistMono-SemiBold.ttf`,
+  ).then((res) => res.arrayBuffer());
 
   if (isNaN(petitionId)) {
     return new ImageResponse(
