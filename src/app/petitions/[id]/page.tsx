@@ -2,7 +2,7 @@ import { getPetition } from "@/app/actions";
 import PetitionPageClient from "@/components/PetitionPage/PetitionPageClient";
 import { Metadata } from "next";
 import { getTokens } from "next-firebase-auth-edge";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { authConfig } from "../../config/server-config";
 import { PetitionStatus } from "@/types/petition";
 import PetitionNotFound from "@/components/PetitionPage/PetitionNotFound";
@@ -28,6 +28,13 @@ export async function generateMetadata({
     .replace(/<[^>]*>/g, "")
     .slice(0, 160);
 
+  const headersList = await headers();
+  const host = headersList.get("host") || "localhost:3000";
+  const protocol =
+    headersList.get("x-forwarded-proto") ||
+    (process.env.NODE_ENV === "development" ? "http" : "https");
+  const baseUrl = `${protocol}://${host}`;
+
   return {
     title: `${petition.title} | PawPrints`,
     description: description,
@@ -35,14 +42,15 @@ export async function generateMetadata({
       title: petition.title,
       description: description,
       type: "website",
-      url: `https://pawprints.ritdubai.ae/petitions/${id}`,
+      url: `${baseUrl}/petitions/${id}`,
       siteName: "PawPrints",
       images: [
         {
-          url: `/petitions/${id}/opengraph-image`,
+          url: `${baseUrl}/petitions/${id}/opengraph-image`,
           width: 1200,
           height: 630,
           alt: petition.title,
+          type: "image/png",
         },
       ],
     },
@@ -50,7 +58,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: petition.title,
       description: description,
-      images: [`/petitions/${id}/opengraph-image`],
+      images: [`${baseUrl}/petitions/${id}/opengraph-image`],
     },
   };
 }

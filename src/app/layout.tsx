@@ -12,7 +12,6 @@ import { Metadata } from "@/app/auth/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { prisma } from "@/lib/prisma";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
