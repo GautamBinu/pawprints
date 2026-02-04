@@ -19,15 +19,17 @@ export default async function Image({ params }: { params: { id: string } }) {
   const domain = process.env.VERCEL_URL || "localhost:3000";
   const baseUrl = `${protocol}://${domain}`;
 
-  // Load Geist fonts from public/fonts directory for reliable production deployment
-  const geistSansBold = await fetch(`${baseUrl}/fonts/Geist-Bold.ttf`).then(
-    (res) => res.arrayBuffer(),
-  );
-  const geistSansBlack = await fetch(`${baseUrl}/fonts/Geist-Black.ttf`).then(
-    (res) => res.arrayBuffer(),
-  );
+  // Load Geist fonts from JSDelivr CDN for reliable serverless deployment
+  const geistSansBold = await fetch(
+    "https://cdn.jsdelivr.net/npm/geist@1.5.1/dist/fonts/geist-sans/Geist-Bold.ttf",
+  ).then((res) => res.arrayBuffer());
+
+  const geistSansBlack = await fetch(
+    "https://cdn.jsdelivr.net/npm/geist@1.5.1/dist/fonts/geist-sans/Geist-Black.ttf",
+  ).then((res) => res.arrayBuffer());
+
   const geistMonoSemiBold = await fetch(
-    `${baseUrl}/fonts/GeistMono-SemiBold.ttf`,
+    "https://cdn.jsdelivr.net/npm/geist@1.5.1/dist/fonts/geist-mono/GeistMono-SemiBold.ttf",
   ).then((res) => res.arrayBuffer());
 
   if (isNaN(petitionId)) {
