@@ -24,9 +24,34 @@ export async function generateMetadata({
   const petition = await getPetition(id);
   if (!petition) return { title: "Petition Not Found" };
 
+  const description = petition.description
+    .replace(/<[^>]*>/g, "")
+    .slice(0, 160);
+
   return {
     title: `${petition.title} | PawPrints`,
-    description: petition.description.replace(/<[^>]*>/g, "").slice(0, 160),
+    description: description,
+    openGraph: {
+      title: petition.title,
+      description: description,
+      type: "website",
+      url: `https://pawprints.ritdubai.ae/petitions/${id}`,
+      siteName: "PawPrints",
+      images: [
+        {
+          url: `/petitions/${id}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: petition.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: petition.title,
+      description: description,
+      images: [`/petitions/${id}/opengraph-image`],
+    },
   };
 }
 

@@ -26,6 +26,7 @@ import {
   getRequiredPermissionForAction,
   PermissionAction,
 } from "@/lib/permissions";
+import { logAction } from "@/lib/audit";
 
 const sanitizeOptions = {
   allowedTags: [
@@ -207,6 +208,12 @@ export async function approvePetition(
     data,
   });
 
+  await logAction(
+    "APPROVE_PETITION",
+    { petitionId: id, tierId, categoryName },
+    tokens.decodedToken.uid,
+  );
+
   await createNotification(
     petition.authorId,
     "Petition Approved",
@@ -232,6 +239,12 @@ export async function rejectPetition(id: number) {
     },
   });
 
+  await logAction(
+    "REJECT_PETITION",
+    { petitionId: id },
+    tokens.decodedToken.uid,
+  );
+
   await createNotification(
     petition.authorId,
     "Petition Rejected",
@@ -243,24 +256,21 @@ export async function rejectPetition(id: number) {
   revalidatePath("/", "layout");
 }
 
-export async function returnPetition(petitionId: number) {
+export async function returnPetition(id: number) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) throw new Error("Unauthorized");
   const userId = tokens.decodedToken.uid;
 
   await checkPermission(userId, "return");
 
-  const petition = await prisma.petition.findUnique({
-    where: { id: petitionId },
-  });
-  if (!petition) throw new Error("Petition not found");
-
-  await prisma.petition.update({
-    where: { id: petitionId },
+  const petition = await prisma.petition.update({
+    where: { id },
     data: {
       status: PetitionStatus.Returned,
     },
   });
+
+  await logAction("RETURN_PETITION", { petitionId: id }, userId);
 
   await createNotification(
     petition.authorId,
@@ -337,7 +347,11 @@ export async function createPetition(data: {
     },
   });
 
-  revalidatePath(`/petitions/${petition.id}`, "page");
+  await logAction(
+    "CREATE_PETITION",
+    { petitionId: petition.id, title: petition.title },
+    userId,
+  );
 
   return petition;
 }
@@ -476,7 +490,10 @@ export async function publishPetition(petitionId: number) {
       expires: new Date(Date.now() + PETITION_DURATION_MS),
     },
   });
-  revalidatePath("/", "layout");
+
+  await logAction("PUBLISH_PETITION", { petitionId }, userId);
+
+  revalidatePath("/");
 }
 
 export async function getPetitions(): Promise<Petition[]> {
@@ -583,6 +600,8 @@ export async function signPetition(petitionId: number) {
     },
   });
 
+  await logAction("SIGN_PETITION", { petitionId }, userId);
+
   if (updatedPetition.signatures === PETITION_THRESHOLD) {
     await createNotification(
       updatedPetition.authorId,
@@ -617,7 +636,9 @@ export async function unsignPetition(petitionId: number) {
     },
   });
 
-  revalidatePath("/", "layout");
+  await logAction("UNSIGN_PETITION", { petitionId }, userId);
+
+  revalidatePath(`/petitions/${petitionId}`, "page");
 }
 
 export async function getPetitionSignatureStatus(petitionId: number) {
@@ -821,6 +842,12 @@ export async function addResponse(petitionId: number, description: string) {
     },
   });
 
+  await logAction(
+    "ADD_RESPONSE",
+    { petitionId, responseId: response.id },
+    userId,
+  );
+
   await notifyPetitionSubscribers(
     petitionId,
     `Response to "${petition.title}"`,
@@ -852,6 +879,13 @@ export async function markInProgress(petitionId: number, inProgress: boolean) {
     where: { id: petitionId },
     data: { inProgress },
   });
+
+  await logAction(
+    "MARK_IN_PROGRESS",
+    { petitionId, inProgress },
+    tokens.decodedToken.uid,
+  );
+
   revalidatePath("/", "layout");
 }
 
@@ -869,6 +903,13 @@ export async function unpublishPetition(petitionId: number) {
     where: { id: petitionId },
     data: { status: PetitionStatus.Removed },
   });
+
+  await logAction(
+    "UNPUBLISH_PETITION",
+    { petitionId },
+    tokens.decodedToken.uid,
+  );
+
   revalidatePath("/", "layout");
 }
 
@@ -887,6 +928,9 @@ export async function editUpdate(updateId: number, description: string) {
     where: { id: updateId },
     data: { description: sanitizeHtml(description, sanitizeOptions) },
   });
+
+  await logAction("EDIT_UPDATE", { updateId }, tokens.decodedToken.uid);
+
   revalidatePath("/", "layout");
   return {
     id: update.id,
@@ -910,6 +954,9 @@ export async function editResponse(responseId: number, description: string) {
     where: { id: responseId },
     data: { description: sanitizeHtml(description, sanitizeOptions) },
   });
+
+  await logAction("EDIT_RESPONSE", { responseId }, tokens.decodedToken.uid);
+
   revalidatePath("/", "layout");
   return {
     id: response.id,
@@ -991,6 +1038,13 @@ export async function updateNotificationSettings(settings: {
       ...settings,
     },
   });
+
+  await logAction(
+    "UPDATE_NOTIFICATION_SETTINGS",
+    settings,
+    tokens.decodedToken.uid,
+  );
+
   revalidatePath("/profile");
 }
 
@@ -1038,4 +1092,48 @@ export async function getPetition(id: number) {
     })),
     old_id: petition.oldId,
   };
+}
+
+export async function getAuditLogs() {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) throw new Error("Unauthorized");
+
+  const user = await prisma.user.findUnique({
+    where: { id: tokens.decodedToken.uid },
+  });
+
+  if (!user || !user.isSuperAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  return prisma.auditLog.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { user: true },
+    take: 100,
+  });
+}
+
+export async function getUsers() {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) throw new Error("Unauthorized");
+
+  const user = await prisma.user.findUnique({
+    where: { id: tokens.decodedToken.uid },
+  });
+
+  if (!user || !user.isSuperAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  return prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      _count: {
+        select: {
+          createdPetitions: true,
+          signedPetitions: true,
+        },
+      },
+    },
+  });
 }

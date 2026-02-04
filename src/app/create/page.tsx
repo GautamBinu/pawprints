@@ -127,7 +127,7 @@ export default function New() {
       toast.success(
         "Petition submitted for review! You will be notified when it is approved.",
       );
-      router.push("/profile");
+      router.push(`/petitions/${currentPetitionId}`);
     } catch (error) {
       console.error("Error creating petition:", error);
       toast.error("Failed to create petition. Please try again.");

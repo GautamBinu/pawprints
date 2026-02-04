@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
     "prisma:build": "prisma generate",
+    "prisma:push": "prisma db push",
     "start": "next start"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "clsx": "^2.1.1",
     "firebase": "^12.2.1",
     "firebase-admin": "^13.6.0",
+    "geist": "^1.5.1",
     "lucide-react": "^0.562.0",
     "moment": "^2.30.1",
     "next": "^15.5.9",

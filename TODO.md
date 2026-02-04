@@ -32,10 +32,11 @@
   - [ ] Petition draft auto-delete after 7 days
   - [X] Reject petition with request for review
   - [ ] Archive petitions after expiry date
-- [ ] Superadmin logging
+- [X] Superadmin logging
+- [ ] **Admin page filters, search**
 - [X] Fix: show petition status on cards too maybe?
 - [ ] Change spinner to something more aesthetic?
-- [ ] Big feat: reporting system
+- [ ] **Big feat: reporting system**
 - [ ] Consistent icons
 - [ ] Fix: Quill editor toolbar color in dark mode
 - [ ] Banner images / pictures

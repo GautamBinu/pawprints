@@ -124,6 +124,7 @@ body {
   font-family: "Geist", Arial, Helvetica, sans-serif;
   font-size: 16px;
   min-height: 300px;
+  border: none !important;
 }
 
 .petition-editor .ql-editor {
@@ -140,7 +141,8 @@ body {
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
   background-color: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
 }
 
 .petition-editor .ql-container {
@@ -292,6 +294,10 @@ body {
 }
 
 /* Dark Mode Quill Overrides */
+.dark .petition-editor .ql-toolbar {
+  background-color: var(--muted);
+}
+
 .dark .ql-toolbar .ql-stroke {
   stroke: var(--foreground);
 }
@@ -302,6 +308,11 @@ body {
 
 .dark .ql-toolbar .ql-picker {
   color: var(--foreground);
+}
+
+.dark .ql-toolbar .ql-picker-options {
+  background-color: var(--popover);
+  border-color: var(--border);
 }
 
 .dark .ql-toolbar button:hover .ql-stroke,

@@ -1,27 +1,47 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 export default function PublicHome() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
-      <section className="w-full py-20 px-6 bg-muted/30 flex flex-col items-center text-center">
-        <h1 className="text-4xl md:text-6xl font-bold text-primary mb-6">
-          PawPrints
-        </h1>
-        <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mb-10">
-          The official petition platform for the RIT Dubai community.
-          <br /> Make your voice heard and drive positive change.
-        </p>
-        <div className="flex gap-4">
-          <Link href="/login">
-            <Button size="lg">Get Started</Button>
-          </Link>
-          <Link href="/about">
-            <Button variant="outline" size="lg">
-              Learn More
-            </Button>
-          </Link>
+      <section className="relative w-full py-32 px-6 flex flex-col items-center text-center overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/images/ritdubai.jpg"
+            alt="RIT Dubai Campus"
+            fill
+            className="object-cover"
+            priority
+            quality={90}
+          />
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
+
+        <div className="relative z-10">
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-6 drop-shadow-2xl tracking-tight">
+            PawPrints
+          </h1>
+          <p className="text-xl md:text-2xl text-white max-w-3xl mb-10 drop-shadow-lg font-medium">
+            The official petition platform for the RIT Dubai community.
+            <br /> Make your voice heard and drive positive change.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Link href="/login">
+              <Button
+                size="lg"
+                className="bg-primary hover:bg-primary/90 text-white font-bold shadow-xl"
+              >
+                Get Started
+              </Button>
+            </Link>
+            <Link href="/about">
+              <Button variant="outline" size="lg">
+                Learn More
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -58,7 +78,7 @@ export default function PublicHome() {
               <h3 className="text-xl font-bold">1. Have an idea</h3>
               <p className="text-muted-foreground">
                 Search for existing petitions to support, or start your own if
-                your issue hasn&apos;t been raised yet. Reaching the signature
+                your issue hasn't been raised yet. Reaching the signature
                 threshold brings your issue to Student Government.
               </p>
             </div>
