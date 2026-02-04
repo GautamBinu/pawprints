@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 export default function PublicHome() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
+      {/* Hero Section with Background Image */}
       <section className="relative w-full py-32 px-6 flex flex-col items-center text-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
@@ -37,7 +38,7 @@ export default function PublicHome() {
               </Button>
             </Link>
             <Link href="/about">
-              <Button variant="outline" size="lg">
+              <Button variant="secondary" size="lg">
                 Learn More
               </Button>
             </Link>
@@ -78,7 +79,7 @@ export default function PublicHome() {
               <h3 className="text-xl font-bold">1. Have an idea</h3>
               <p className="text-muted-foreground">
                 Search for existing petitions to support, or start your own if
-                your issue hasn't been raised yet. Reaching the signature
+                your issue hasn&apos;t been raised yet. Reaching the signature
                 threshold brings your issue to Student Government.
               </p>
             </div>
