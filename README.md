@@ -2,7 +2,7 @@
 
 
 > [!WARNING]  
-> PawPrints is currently in active development and is not yet production-ready. Content and features may change significantly before the official launch, and links are subject to change. Please stay tuned for updates!
+> PawPrints is currently in active development and is not yet production-ready. Content and features may change significantly before the official launch, and logos and links are subject to change. Please stay tuned for updates!
 
 PawPrints is a petition platform built for the [RIT Dubai](https://rit.edu/dubai) community (based on the actual [PawPrints](https://pawprints.rit.edu)) to allow members of the RIT Dubai community to submit, sign, and share petitions with the administration. 
 
@@ -53,7 +53,7 @@ Make sure you have Node.js v20.x or higher installed. You will also need access 
 ### Clone the repository
 
 ```bash
-git clone https://github.com/ritsg/pawprints.git
+git clone https://github.com/ritdubaisg/pawprints.git
 cd pawprints
 ```
 
