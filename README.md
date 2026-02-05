@@ -14,13 +14,13 @@ Here's a list of cool features we currently have:
   - Rich text editing with support links and formatting!
 - **RIT-only user authentication**
   -  Via Google OAuth (RIT accounts only) or email/password accounts issued by us
-  - See [*Firebase Setup*](###Authentication) for more details
+  - See [*Firebase Setup*](#authentication) for more details
 - **Sign petitions and track your signatures**
 - **Admin dashboard for managing petitions and users**
   - Shh! Set `isAdmin` to `true` in the database for your user and go to `/admin`!
 - **Responsive design for mobile and desktop**
   - Thank you Shadcn
-  - See [*UI & Theming*](###Shadcn-UI) for more details
+  - See [*UI & Theming*](#shadcn-ui) for more details
   - Dark mode support that respects system preferences
 - **Granular permission controls for users, staff, and admins**
   - We did it like how Linux does it
@@ -35,7 +35,7 @@ Here's a list of cool features we currently have:
   - Powered by [Google Safe Browsing API](https://developers.google.com/safe-browsing/v4)
   - We scan all external links in petitions and warn users before they visit potentially harmful sites
 - **Amazing DX with tools like Prisma to help manage the database schema and migrations**
-  - See [*Database & Prisma*](###Database--Prisma) for more details
+  - See [*Database & Prisma*](#database--prisma) for more details
 
 ...and so much more that we're planning to add, see [TODO.md](TODO.md)!
 
