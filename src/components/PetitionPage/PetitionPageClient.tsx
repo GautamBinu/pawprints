@@ -331,9 +331,9 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
       }
 
       setAdminContent("");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to perform action");
+      toast.error(error.message || "Failed to perform action");
     } finally {
       setIsLoadingSign(false);
     }

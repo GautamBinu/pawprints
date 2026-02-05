@@ -128,9 +128,11 @@ export default function New() {
         "Petition submitted for review! You will be notified when it is approved.",
       );
       router.push(`/petitions/${currentPetitionId}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating petition:", error);
-      toast.error("Failed to create petition. Please try again.");
+      toast.error(
+        error.message || "Failed to create petition. Please try again.",
+      );
       setIsSubmitting(false);
     }
   };

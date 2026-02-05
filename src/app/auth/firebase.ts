@@ -13,7 +13,14 @@ export const getFirebaseApp = () => {
     return getApp();
   }
 
-  return initializeApp(clientConfig);
+  const config = { ...clientConfig };
+
+  // Set authDomain to current host when running in browser with HTTPS, otherwise signInWithRedirect will fail on localhost environments
+  if (typeof window !== "undefined" && window.location.protocol === "https:") {
+    config.authDomain = window.location.host;
+  }
+
+  return initializeApp(config);
 };
 
 export const getFirestore = () => {

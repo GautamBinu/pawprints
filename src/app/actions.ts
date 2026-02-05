@@ -27,6 +27,7 @@ import {
   PermissionAction,
 } from "@/lib/permissions";
 import { logAction } from "@/lib/audit";
+import { containsMaliciousLinks, extractUrls } from "@/lib/safe-browsing";
 
 const sanitizeOptions = {
   allowedTags: [
@@ -47,7 +48,26 @@ const sanitizeOptions = {
     "s",
   ],
   allowedAttributes: {
-    a: ["href", "target"],
+    a: ["href", "target", "rel"],
+  },
+  transformTags: {
+    a: (tagName: string, attribs: { [key: string]: string }) => {
+      const href = attribs.href;
+      if (!href) return { tagName, attribs };
+
+      if (href.startsWith("/") || href.startsWith("#")) {
+        return { tagName, attribs };
+      }
+
+      return {
+        tagName,
+        attribs: {
+          ...attribs,
+          href: `/external-link?url=${encodeURIComponent(href)}`,
+          rel: "noopener noreferrer",
+        },
+      };
+    },
   },
 };
 
@@ -309,6 +329,14 @@ export async function createPetition(data: {
 
   const validatedData = schema.parse(data);
 
+  const urls = extractUrls(validatedData.description);
+  const { isSafe, maliciousUrls } = await containsMaliciousLinks(urls);
+  if (!isSafe) {
+    throw new Error(
+      `Your petition contains links flagged as unsafe: ${maliciousUrls.join(", ")}`,
+    );
+  }
+
   const userId = tokens.decodedToken.uid;
   const email = tokens.decodedToken.email;
   const name = tokens.decodedToken.name || email;
@@ -396,6 +424,14 @@ export async function updatePetition(
   });
 
   const validatedData = schema.parse(data);
+
+  const urls = extractUrls(validatedData.description);
+  const { isSafe, maliciousUrls } = await containsMaliciousLinks(urls);
+  if (!isSafe) {
+    throw new Error(
+      `Your petition contains links flagged as unsafe: ${maliciousUrls.join(", ")}`,
+    );
+  }
 
   const updatedPetition = await prisma.petition.update({
     where: { id },
@@ -786,6 +822,14 @@ export async function addUpdate(petitionId: number, description: string) {
   });
   schema.parse({ petitionId, description });
 
+  const urls = extractUrls(description);
+  const { isSafe, maliciousUrls } = await containsMaliciousLinks(urls);
+  if (!isSafe) {
+    throw new Error(
+      `Your update contains links flagged as unsafe: ${maliciousUrls.join(", ")}`,
+    );
+  }
+
   const update = await prisma.update.create({
     data: {
       description: sanitizeHtml(description, sanitizeOptions),
@@ -825,6 +869,14 @@ export async function addResponse(petitionId: number, description: string) {
     description: z.string().min(1, "Description cannot be empty"),
   });
   schema.parse({ petitionId, description });
+
+  const urls = extractUrls(description);
+  const { isSafe, maliciousUrls } = await containsMaliciousLinks(urls);
+  if (!isSafe) {
+    throw new Error(
+      `Your response contains links flagged as unsafe: ${maliciousUrls.join(", ")}`,
+    );
+  }
 
   const response = await prisma.response.create({
     data: {
@@ -924,6 +976,14 @@ export async function editUpdate(updateId: number, description: string) {
   });
   schema.parse({ updateId, description });
 
+  const urls = extractUrls(description);
+  const { isSafe, maliciousUrls } = await containsMaliciousLinks(urls);
+  if (!isSafe) {
+    throw new Error(
+      `Your update contains links flagged as unsafe: ${maliciousUrls.join(", ")}`,
+    );
+  }
+
   const update = await prisma.update.update({
     where: { id: updateId },
     data: { description: sanitizeHtml(description, sanitizeOptions) },
@@ -949,6 +1009,14 @@ export async function editResponse(responseId: number, description: string) {
     description: z.string().min(1, "Description cannot be empty"),
   });
   schema.parse({ responseId, description });
+
+  const urls = extractUrls(description);
+  const { isSafe, maliciousUrls } = await containsMaliciousLinks(urls);
+  if (!isSafe) {
+    throw new Error(
+      `Your response contains links flagged as unsafe: ${maliciousUrls.join(", ")}`,
+    );
+  }
 
   const response = await prisma.response.update({
     where: { id: responseId },
@@ -1048,6 +1116,58 @@ export async function updateNotificationSettings(settings: {
   revalidatePath("/profile");
 }
 
+export async function verifyExternalLink(url: string) {
+  const { isSafe } = await containsMaliciousLinks([url]);
+  return isSafe;
+}
+
+async function processContent(html: string) {
+  const urls = new Set<string>();
+
+  const externalLinkRegex = /href="\/external-link\?url=([^"]+)"/g;
+  let match;
+  while ((match = externalLinkRegex.exec(html)) !== null) {
+    try {
+      urls.add(decodeURIComponent(match[1]));
+    } catch {}
+  }
+
+  const rawLinkRegex = /href="(https?:\/\/[^"]+)"/g;
+  while ((match = rawLinkRegex.exec(html)) !== null) {
+    urls.add(match[1]);
+  }
+
+  if (urls.size === 0) return html;
+
+  const { maliciousUrls } = await containsMaliciousLinks(Array.from(urls));
+  if (maliciousUrls.length === 0) return html;
+
+  let processedHtml = html;
+  for (const url of maliciousUrls) {
+    const encodedUrl = encodeURIComponent(url);
+    const safeEncodedUrl = encodedUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rewrittenRegex = new RegExp(
+      `<a\\s+(?:[^>]*?\\s+)?href="\\/external-link\\?url=${safeEncodedUrl}"(?:[^>]*?)>(.*?)<\\/a>`,
+      "gi",
+    );
+
+    processedHtml = processedHtml.replace(rewrittenRegex, (match, content) => {
+      return `<span class="text-destructive font-mono text-sm bg-destructive/10 px-1 rounded" title="This link has been flagged as unsafe">[UNSAFE LINK: ${url}]</span>`;
+    });
+
+    const safeUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rawRegex = new RegExp(
+      `<a\\s+(?:[^>]*?\\s+)?href="${safeUrl}"(?:[^>]*?)>(.*?)<\\/a>`,
+      "gi",
+    );
+
+    processedHtml = processedHtml.replace(rawRegex, (match, content) => {
+      return `<span class="text-destructive font-mono text-sm bg-destructive/10 px-1 rounded" title="This link has been flagged as unsafe">[UNSAFE LINK: ${url}]</span>`;
+    });
+  }
+  return processedHtml;
+}
+
 export async function getPetition(id: number) {
   const petition = await prisma.petition.findUnique({
     where: { id },
@@ -1061,10 +1181,23 @@ export async function getPetition(id: number) {
 
   if (!petition) return null;
 
+  const [description, responseDescription, updates] = await Promise.all([
+    processContent(petition.description),
+    petition.response
+      ? processContent(petition.response.description)
+      : Promise.resolve(undefined),
+    Promise.all(
+      petition.updates.map(async (u) => ({
+        ...u,
+        description: await processContent(u.description),
+      })),
+    ),
+  ]);
+
   return {
     id: petition.id,
     title: petition.title,
-    description: petition.description,
+    description: description,
     tags: petition.tags,
     author: petition.author?.name || petition.authorId,
     authorId: petition.authorId,
@@ -1076,16 +1209,17 @@ export async function getPetition(id: number) {
     expires: petition.expires.toISOString(),
     last_signed: petition.lastSigned?.toISOString() || null,
     has_response: petition.hasResponse,
-    response: petition.response
-      ? {
-          id: petition.response.id,
-          description: petition.response.description,
-          created_at: petition.response.createdAt.toISOString(),
-          author: petition.response.author,
-        }
-      : null,
+    response:
+      petition.response && responseDescription
+        ? {
+            id: petition.response.id,
+            description: responseDescription,
+            created_at: petition.response.createdAt.toISOString(),
+            author: petition.response.author,
+          }
+        : null,
     in_progress: petition.inProgress,
-    updates: petition.updates.map((u) => ({
+    updates: updates.map((u) => ({
       id: u.id,
       description: u.description,
       created_at: u.createdAt.toISOString(),

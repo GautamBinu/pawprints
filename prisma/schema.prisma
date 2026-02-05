@@ -76,8 +76,8 @@ model Petition {
   signers       User[]    @relation("SignedPetitions")
   subscribers   User[]    @relation("SubscribedPetitions")
   signatures    Int       @default(0)
-  targetSignatures Int    @default(150)
-  tier          Int       @default(0)
+  targetSignatures Int    @default(200)
+  tier          Int       @default(3)
   createdAt     DateTime  @default(now())
   status        Int       @default(0) // 0: New, 1: Published, 2: Removed, 3: NeedsReview
   expires       DateTime
@@ -143,4 +143,11 @@ model AuditLog {
   @@index([action])
   @@index([userId])
   @@index([createdAt])
+}
+
+model LinkSafetyCache {
+  url       String   @id
+  isSafe    Boolean
+  checkedAt DateTime @default(now())
+  threatType String?
 }

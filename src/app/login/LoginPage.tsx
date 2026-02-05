@@ -1,13 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { getFirebaseAuth } from "@/app/auth/firebase";
 import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
+  signInWithRedirect,
+  getRedirectResult,
 } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,26 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showEmailLogin, setShowEmailLogin] = useState(false);
+
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result) {
+          setIsLoading(true);
+          const user = result.user;
+          const idToken = await user?.getIdToken();
+          await loginAction(idToken!);
+        }
+      })
+      .catch((error) => {
+        if (error?.message === "NEXT_REDIRECT") {
+          return;
+        }
+        console.error("Redirect login error:", error);
+        setError(error.message || "An error occurred during login");
+      });
+  }, [loginAction]);
 
   async function handleEmailLogin(event: React.FormEvent) {
     event.preventDefault();
@@ -86,11 +108,21 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
       // Note: its either this or signInWithRedirect
       // signInWithPopup has issues with some browsers, especially on mobile
       // But signInWithRedirect requires additional handling after redirect
-      // Especially on storage partitioned browsers
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const idToken = await user?.getIdToken();
-      await loginAction(idToken!);
+      // especially on storage partitioned browsers
+      let idToken: string;
+      try {
+        const result = await signInWithPopup(auth, provider);
+        idToken = await result.user.getIdToken();
+      } catch (popupError: any) {
+        console.log("Popup failed, trying redirect", popupError);
+
+        // THIS WILL FAIL IN DEV ON LOCALHOST
+        // USE SIGNINWITHPOPUP FOR DEV, SIGNINWITHREDIRECT WILL WORK IN PROD
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
+      await loginAction(idToken);
     } catch (error: any) {
       console.log(error.message);
       console.log(typeof error);
@@ -101,9 +133,8 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
       } else {
         console.error("Login error:", error);
         setError(error.message || "An error occurred during login");
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
     }
   }
 
@@ -129,10 +160,12 @@ export default function LoginPage({ loginAction }: LoginPageProps) {
             />
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-[#F76902]">
-              PawPrints
+            <CardTitle className="text-left text-5xl font-bold">
+              Sign in to <span className="text-[#F76902]">PawPrints</span>
             </CardTitle>
-            <CardDescription>Your voice matters at RIT Dubai</CardDescription>
+            <CardDescription className="text-left mt-2 font-bold">
+              Your voice matters at RIT Dubai
+            </CardDescription>
           </div>
         </CardHeader>
 

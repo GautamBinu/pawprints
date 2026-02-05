@@ -23,7 +23,6 @@
 - [X] Fix: logout page
 - [X] Fix: mobile responsiveness for some pages
 - [X] Fully gated, main page only for signed-in users
-- [ ] Support images in Quill
 - [X] Only draft if quit creation
 - [X] Dashboard for editing responses and updates
 - [X] Delete published petiton for admins
@@ -33,13 +32,21 @@
   - [X] Reject petition with request for review
   - [ ] Archive petitions after expiry date
 - [X] Superadmin logging
-- [ ] **Admin page filters, search**
+- [X] **Admin page filters, search**
 - [X] Fix: show petition status on cards too maybe?
 - [ ] Change spinner to something more aesthetic?
 - [ ] **Big feat: reporting system**
 - [ ] Consistent icons
 - [ ] Fix: Quill editor toolbar color in dark mode
-- [ ] Banner images / pictures
+- [X] Banner images / pictures
+- [ ] Handle signInWithRedirect, verify if it works
+- [ ] Gatekeep petition pages or no?
+- [X] Remove malicious links from petition content
+  - [X] Check during rendering and redirecting too
+- [X] Show external links alert
+- [ ] Custom error pages such as 404
+- [ ] Get rid of /explore and use /petitions instead
+- [ ] Use sign in and sign up terminology consistently, including routes
 
 ---
 
