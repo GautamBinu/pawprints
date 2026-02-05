@@ -24,7 +24,7 @@ export default function AboutPage() {
           <p className="mt-6">
             To remain transparent, this site is an open-source project on{" "}
             <a
-              href="https://github.com/https://github.com/SG-RIT-Dubai/pawprints"
+              href="https://github.com/ritdubaisg/pawprints"
               target="_blank"
               className="text-primary hover:underline"
             >

@@ -58,7 +58,7 @@ export default function PublicHome() {
             <p>
               To remain transparent, this site is an{" "}
               <a
-                href="https://github.com/SG-RIT-Dubai/pawprints"
+                href="https://github.com/ritdubaisg/pawprints"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"

@@ -120,7 +120,7 @@ export default function PrivacyPage() {
               Student Government. You can inspect exactly how we handle data by
               viewing our source code on{" "}
               <a
-                href="https://github.com/ritstudentgovernment/PawPrints"
+                href="https://github.com/ritdubaisg/pawprints"
                 target="_blank"
                 rel="noreferrer"
                 className="text-primary hover:underline"

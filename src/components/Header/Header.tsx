@@ -193,7 +193,11 @@ const Header = ({ hasAdminAccess }: HeaderProps) => {
 
                     <DropdownMenuGroup>
                       <DropdownMenuItem
-                        onClick={() => handleNavigate("/github")}
+                        onClick={() =>
+                          handleNavigate(
+                            "https://github.com/ritdubaisg/pawprints",
+                          )
+                        }
                       >
                         GitHub
                       </DropdownMenuItem>
@@ -271,7 +275,11 @@ const Header = ({ hasAdminAccess }: HeaderProps) => {
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
                       <DropdownMenuItem
-                        onClick={() => handleNavigate("/github")}
+                        onClick={() =>
+                          handleNavigate(
+                            "https://github.com/ritdubaisg/pawprints",
+                          )
+                        }
                       >
                         GitHub
                       </DropdownMenuItem>
