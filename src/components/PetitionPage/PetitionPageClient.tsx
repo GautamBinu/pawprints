@@ -516,7 +516,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
               <CardTitle className="text-base">New Update</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-white rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              <div className="bg-background dark:bg-popover rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
                 <ReactQuill
                   theme="snow"
                   value={adminContent}
@@ -635,7 +635,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-white rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              <div className="bg-background dark:bg-popover rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
                 <ReactQuill
                   theme="snow"
                   value={adminContent}

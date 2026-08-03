@@ -324,3 +324,19 @@ body {
 .dark .ql-toolbar button.ql-active .ql-fill {
   fill: var(--primary);
 }
+
+
+.dark .petition-editor .ql-container {
+  background-color: var(--popover);
+  border: none !important;
+}
+
+.dark .petition-editor .ql-editor {
+  background-color: transparent; 
+  color: var(--foreground);
+  min-height: 300px;
+}
+
+.dark .petition-editor .ql-editor.ql-blank::before {
+  color: var(--muted-foreground);
+}
