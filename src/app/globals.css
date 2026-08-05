@@ -340,3 +340,22 @@ body {
 .dark .petition-editor .ql-editor.ql-blank::before {
   color: var(--muted-foreground);
 }
+
+/* Quill link tooltip/dialog should follow the app theme */
+.petition-editor .ql-tooltip {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+}
+
+.petition-editor .ql-tooltip input {
+  color: var(--foreground);
+  background-color: var(--background);
+  border: 1px solid var(--border);
+}
+
+.dark .petition-editor .ql-tooltip {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}
