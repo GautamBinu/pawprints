@@ -83,7 +83,7 @@ model Petition {
   expires       DateTime
   lastSigned    DateTime?
   hasResponse   Boolean   @default(false)
-
+  thresholdNotifiedAt DateTime?
   responseId    Int?
   response      Response? @relation(fields: [responseId], references: [id])
 
