@@ -1168,7 +1168,34 @@ async function processContent(html: string) {
   return processedHtml;
 }
 
+/**
+ * Whether the caller may view a petition in a non-Published state.
+ *
+ * Visible to the author, to staff, and to superadmins. Everyone else —
+ * including unauthenticated callers — is treated as if it does not exist.
+ */
+async function canViewUnpublishedPetition(authorId: string): Promise<boolean> {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) return false;
+
+  const userId = tokens.decodedToken.uid;
+  if (authorId === userId) return true;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isStaff: true, isSuperAdmin: true },
+  });
+
+  return Boolean(user?.isStaff || user?.isSuperAdmin);
+}
+
+/**
+ * Returns null rather than throwing, so an unauthorized response is
+ * indistinguishable from a petition that does not exist.
+ */
 export async function getPetition(id: number) {
+  if (!Number.isInteger(id) || id <= 0) return null;
+
   const petition = await prisma.petition.findUnique({
     where: { id },
     include: {
@@ -1180,6 +1207,15 @@ export async function getPetition(id: number) {
   });
 
   if (!petition) return null;
+
+  // Checked before processContent: that path makes Safe Browsing calls, and an
+  // unauthorized caller should not spend quota on content they cannot read.
+  if (
+    petition.status !== PetitionStatus.Published &&
+    !(await canViewUnpublishedPetition(petition.authorId))
+  ) {
+    return null;
+  }
 
   const [description, responseDescription, updates] = await Promise.all([
     processContent(petition.description),
