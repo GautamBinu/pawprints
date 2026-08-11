@@ -1179,6 +1179,8 @@ async function canViewUnpublishedPetition(authorId: string): Promise<boolean> {
   if (!tokens) return false;
 
   const userId = tokens.decodedToken.uid;
+  if (!userId) return false;
+
   if (authorId === userId) return true;
 
   const user = await prisma.user.findUnique({
