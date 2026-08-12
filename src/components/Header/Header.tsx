@@ -31,7 +31,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { Menu, LogOutIcon, SettingsIcon, UserIcon } from "lucide-react";
+import {
+  Menu,
+  LogOutIcon,
+  SettingsIcon,
+  UserIcon,
+  ShieldIcon,
+} from "lucide-react";
 import { NotificationBell } from "../Notifications/NotificationBell";
 import { ModeToggle } from "@/components/mode-toggle";
 
@@ -44,9 +50,10 @@ import { logoutAction } from "@/app/logout/logout";
 
 interface HeaderProps {
   hasAdminAccess?: boolean;
+  isSuperAdmin?: boolean;
 }
 
-const Header = ({ hasAdminAccess }: HeaderProps) => {
+const Header = ({ hasAdminAccess, isSuperAdmin }: HeaderProps) => {
   const router = useRouter();
   const { user } = useAuth();
 
@@ -187,6 +194,14 @@ const Header = ({ hasAdminAccess }: HeaderProps) => {
                         <SettingsIcon />
                         Settings
                       </DropdownMenuItem>
+                      {isSuperAdmin && (
+                        <DropdownMenuItem
+                          onClick={() => handleNavigate("/admin")}
+                        >
+                          <ShieldIcon />
+                          Admin
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuGroup>
 
                     <DropdownMenuSeparator />
@@ -271,6 +286,14 @@ const Header = ({ hasAdminAccess }: HeaderProps) => {
                         <SettingsIcon />
                         Settings
                       </DropdownMenuItem>
+                      {isSuperAdmin && (
+                        <DropdownMenuItem
+                          onClick={() => handleNavigate("/admin")}
+                        >
+                          <ShieldIcon />
+                          Admin
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
@@ -329,6 +352,16 @@ const Header = ({ hasAdminAccess }: HeaderProps) => {
                       className="text-left text-lg font-medium hover:text-[#F76902] transition-colors flex items-center gap-2"
                     >
                       Dashboard
+                    </button>
+                  )}
+                  {isSuperAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleNavigate("/admin")}
+                      className="text-left text-lg font-medium hover:text-[#F76902] transition-colors flex items-center gap-2"
+                    >
+                      <ShieldIcon className="h-4 w-4" />
+                      Admin
                     </button>
                   )}
                   <button
