@@ -27,6 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import moment from "moment";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Search } from "lucide-react";
@@ -51,6 +58,7 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
   // Logs State
   const [logSearch, setLogSearch] = useState("");
   const [logActionFilter, setLogActionFilter] = useState("All");
+  const [viewingLog, setViewingLog] = useState<any | null>(null);
 
   // Users State
   const [userSearch, setUserSearch] = useState("");
@@ -181,8 +189,17 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="max-w-[300px] truncate text-xs font-mono py-2">
-                            {log.details}
+                          <TableCell className="max-w-[300px] py-2">
+                            {log.details ? (
+                              <button
+                                type="button"
+                                onClick={() => setViewingLog(log)}
+                                className="block w-full truncate text-left text-xs font-mono hover:text-primary hover:underline"
+                                title="Click to view full details"
+                              >
+                                {log.details}
+                              </button>
+                            ) : null}
                           </TableCell>
                           <TableCell className="whitespace-nowrap text-xs text-muted-foreground py-2">
                             {moment(log.createdAt).format("MMM D, YYYY h:mm A")}
@@ -317,6 +334,37 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {viewingLog && (
+        <Dialog open onOpenChange={() => setViewingLog(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{viewingLog.action}</DialogTitle>
+              <DialogDescription>
+                {viewingLog.user?.name || "Unknown"}
+                {viewingLog.user?.email ? ` (${viewingLog.user.email})` : ""}
+                {" · "}
+                {moment(viewingLog.createdAt).format("MMM D, YYYY h:mm A")}
+              </DialogDescription>
+            </DialogHeader>
+            {/* Pretty-printed when the details parse as JSON, raw otherwise —
+                details is a free-form string column. */}
+            <pre className="max-h-[60vh] overflow-auto rounded bg-muted p-3 text-xs whitespace-pre-wrap break-all">
+              {(() => {
+                try {
+                  return JSON.stringify(
+                    JSON.parse(viewingLog.details),
+                    null,
+                    2,
+                  );
+                } catch {
+                  return viewingLog.details;
+                }
+              })()}
+            </pre>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
