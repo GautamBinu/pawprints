@@ -1,4 +1,4 @@
-export const PETITION_THRESHOLD = 150;
+export const PETITION_THRESHOLD = 200;
 
 export const PETITION_TIERS = [
   {

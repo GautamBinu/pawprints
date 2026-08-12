@@ -674,8 +674,14 @@ export async function signPetition(petitionId: number) {
   // `>=` rather than `===`, guarded by thresholdNotifiedAt: now that unsigning
   // works correctly, an exact-equality check could be re-triggered by an
   // unsign/re-sign cycle and spam the author and every subscriber.
+  // The petition's own target, set from its tier at approval. The constant is
+  // only a fallback for petitions with no tier assigned — comparing against it
+  // directly meant Tier 1 and 2 petitions never notified at their stated
+  // target, and Tier 3 notified 50 signatures early.
+  const threshold = updatedPetition.targetSignatures || PETITION_THRESHOLD;
+
   if (
-    updatedPetition.signatures >= PETITION_THRESHOLD &&
+    updatedPetition.signatures >= threshold &&
     !updatedPetition.thresholdNotifiedAt
   ) {
     const claimed = await prisma.petition.updateMany({
