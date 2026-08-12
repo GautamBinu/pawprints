@@ -1,11 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export type NotificationType =
-  | "UPDATE"
-  | "RESPONSE"
-  | "THRESHOLD"
-  | "REPORT"
-  | "SYSTEM";
+  "UPDATE" | "RESPONSE" | "THRESHOLD" | "REPORT" | "SYSTEM";
 
 export async function createNotification(
   userId: string,
@@ -50,7 +46,7 @@ export async function createNotification(
         shouldNotify = false;
         break;
       case "THRESHOLD":
-        shouldNotify = false;
+        shouldNotify = true;
         break;
       case "SYSTEM":
         shouldNotify = true;

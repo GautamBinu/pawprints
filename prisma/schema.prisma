@@ -41,7 +41,7 @@ model NotificationSettings {
   update    Boolean @default(true)
   response  Boolean @default(true)
   reported  Boolean @default(false)
-  threshold Boolean @default(false)
+  threshold Boolean @default(true)
 }
 
 model Notification {

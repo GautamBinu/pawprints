@@ -1082,7 +1082,7 @@ export async function getNotificationSettings() {
       update: true,
       response: true,
       reported: false,
-      threshold: false,
+      threshold: true,
     };
   }
 
