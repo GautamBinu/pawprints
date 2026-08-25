@@ -580,6 +580,25 @@ export async function getPetitions(): Promise<Petition[]> {
   }));
 }
 
+/**
+ * Prisma throws P2025 ("An operation failed because it depends on one or more
+ * records that were required but not found") when a conditional `where` clause
+ * on update matches nothing. We use that as the authorization signal for
+ * sign/unsign, so it needs to be distinguished from real errors.
+ *
+ * Checked structurally rather than with `instanceof` because this project
+ * generates the client to a custom output path (src/generated/client), so the
+ * error class identity is not stable across regeneration.
+ */
+function isPrismaNotFound(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: unknown }).code === "P2025"
+  );
+}
+
 export async function signPetition(petitionId: number) {
   const tokens = await getTokens(await cookies(), authConfig);
   if (!tokens) throw new Error("Unauthorized");
@@ -625,33 +644,60 @@ export async function signPetition(petitionId: number) {
   const alreadySigned = petition.signers.some((s) => s.id === userId);
   if (alreadySigned) throw new Error("Already signed");
 
-  const updatedPetition = await prisma.petition.update({
-    where: { id: petitionId },
-    data: {
-      signatures: { increment: 1 },
-      lastSigned: new Date(),
-      signers: {
-        connect: { id: userId },
+  // The `none` guard closes the race between the alreadySigned check above and
+  // this write: Prisma emits a single conditional UPDATE, so two concurrent
+  // requests cannot both increment. The second matches no row and throws P2025.
+  let updatedPetition;
+  try {
+    updatedPetition = await prisma.petition.update({
+      where: {
+        id: petitionId,
+        signers: { none: { id: userId } },
       },
-    },
-  });
+      data: {
+        signatures: { increment: 1 },
+        lastSigned: new Date(),
+        signers: {
+          connect: { id: userId },
+        },
+      },
+    });
+  } catch (error) {
+    if (isPrismaNotFound(error)) {
+      throw new Error("Already signed");
+    }
+    throw error;
+  }
 
   await logAction("SIGN_PETITION", { petitionId }, userId);
 
-  if (updatedPetition.signatures === PETITION_THRESHOLD) {
-    await createNotification(
-      updatedPetition.authorId,
-      "Threshold Reached",
-      `Your petition "${updatedPetition.title}" has reached ${PETITION_THRESHOLD} signatures!`,
-      "THRESHOLD",
-      updatedPetition.id,
-    );
-    await notifyPetitionSubscribers(
-      updatedPetition.id,
-      "Threshold Reached",
-      `The petition "${updatedPetition.title}" has reached ${PETITION_THRESHOLD} signatures!`,
-      "THRESHOLD",
-    );
+  // `>=` rather than `===`, guarded by thresholdNotifiedAt: now that unsigning
+  // works correctly, an exact-equality check could be re-triggered by an
+  // unsign/re-sign cycle and spam the author and every subscriber.
+  if (
+    updatedPetition.signatures >= PETITION_THRESHOLD &&
+    !updatedPetition.thresholdNotifiedAt
+  ) {
+    const claimed = await prisma.petition.updateMany({
+      where: { id: petitionId, thresholdNotifiedAt: null },
+      data: { thresholdNotifiedAt: new Date() },
+    });
+
+    if (claimed.count === 1) {
+      await createNotification(
+        updatedPetition.authorId,
+        "Threshold Reached",
+        `Your petition "${updatedPetition.title}" has reached ${PETITION_THRESHOLD} signatures!`,
+        "THRESHOLD",
+        updatedPetition.id,
+      );
+      await notifyPetitionSubscribers(
+        updatedPetition.id,
+        "Threshold Reached",
+        `The petition "${updatedPetition.title}" has reached ${PETITION_THRESHOLD} signatures!`,
+        "THRESHOLD",
+      );
+    }
   }
 
   revalidatePath("/", "layout");
@@ -662,19 +708,44 @@ export async function unsignPetition(petitionId: number) {
   if (!tokens) throw new Error("Unauthorized");
   const userId = tokens.decodedToken.uid;
 
-  await prisma.petition.update({
-    where: { id: petitionId },
-    data: {
-      signatures: { decrement: 1 },
-      signers: {
-        disconnect: { id: userId },
+  if (!Number.isInteger(petitionId) || petitionId <= 0) {
+    throw new Error("Invalid petition");
+  }
+
+  // The decrement only executes if this user is currently a signer. The guard
+  // lives in the `where` clause so it is part of the same statement as the
+  // write: there is no check-then-write window, and the counter cannot be
+  // driven below the true signer count.
+  //
+  // Deliberately not gated on hasAccess, status or expiry — withdrawing a
+  // signature is de-escalating, and a user should not be locked into a
+  // signature because their access was revoked or the petition expired.
+  try {
+    await prisma.petition.update({
+      where: {
+        id: petitionId,
+        signers: { some: { id: userId } },
       },
-    },
-  });
+      data: {
+        signatures: { decrement: 1 },
+        signers: {
+          disconnect: { id: userId },
+        },
+      },
+    });
+  } catch (error) {
+    if (isPrismaNotFound(error)) {
+      // One message for both "petition does not exist" and "you never signed
+      // it", so this cannot be used to enumerate petition IDs.
+      throw new Error("You have not signed this petition");
+    }
+    throw error;
+  }
 
   await logAction("UNSIGN_PETITION", { petitionId }, userId);
 
-  revalidatePath(`/petitions/${petitionId}`, "page");
+  // Was page-scoped, which left stale counts on the homepage and Explore.
+  revalidatePath("/", "layout");
 }
 
 export async function getPetitionSignatureStatus(petitionId: number) {
