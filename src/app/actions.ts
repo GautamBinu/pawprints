@@ -1191,7 +1191,31 @@ export async function verifyExternalLink(url: string) {
   const { isSafe } = await containsMaliciousLinks([url]);
   return isSafe;
 }
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
+/** Cap the displayed URL so a very long one cannot break the layout. */
+function truncateForDisplay(value: string, max = 100): string {
+  return value.length > max ? `${value.slice(0, max)}\u2026` : value;
+}
+
+/**
+ * The URL is escaped, so a flagged URL containing HTML metacharacters renders
+ * as inert text rather than executing.
+ */
+function unsafeLinkMarkup(url: string): string {
+  const display = escapeHtml(truncateForDisplay(url));
+  return (
+    `<span class="text-destructive font-mono text-sm bg-destructive/10 px-1 rounded" ` +
+    `title="This link has been flagged as unsafe">[UNSAFE LINK: ${display}]</span>`
+  );
+}
 async function processContent(html: string) {
   const urls = new Set<string>();
 
@@ -1222,19 +1246,18 @@ async function processContent(html: string) {
       "gi",
     );
 
-    processedHtml = processedHtml.replace(rewrittenRegex, (match, content) => {
-      return `<span class="text-destructive font-mono text-sm bg-destructive/10 px-1 rounded" title="This link has been flagged as unsafe">[UNSAFE LINK: ${url}]</span>`;
-    });
-
+    processedHtml = processedHtml.replace(rewrittenRegex, () =>
+      unsafeLinkMarkup(url),
+    );
     const safeUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const rawRegex = new RegExp(
       `<a\\s+(?:[^>]*?\\s+)?href="${safeUrl}"(?:[^>]*?)>(.*?)<\\/a>`,
       "gi",
     );
 
-    processedHtml = processedHtml.replace(rawRegex, (match, content) => {
-      return `<span class="text-destructive font-mono text-sm bg-destructive/10 px-1 rounded" title="This link has been flagged as unsafe">[UNSAFE LINK: ${url}]</span>`;
-    });
+    processedHtml = processedHtml.replace(rawRegex, () =>
+      unsafeLinkMarkup(url),
+    );
   }
   return processedHtml;
 }
