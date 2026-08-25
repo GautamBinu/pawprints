@@ -183,7 +183,8 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
     number | null
   >(null);
 
-  const [adminContent, setAdminContent] = React.useState("");
+  const [updateContent, setUpdateContent] = React.useState("");
+  const [responseContent, setResponseContent] = React.useState("");
   const [isRejectDialogOpen, setIsRejectDialogOpen] = React.useState(false);
   const [isReturnDialogOpen, setIsReturnDialogOpen] = React.useState(false);
   const [rejectReason, setRejectReason] = React.useState("");
@@ -210,7 +211,8 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
     setIsAddingResponse(false);
     setEditingUpdateId(null);
     setEditingResponseId(null);
-    setAdminContent("");
+    setUpdateContent("");
+    setResponseContent("");
 
     if (petition && user) {
       setIsLoadingSign(true);
@@ -279,7 +281,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
     setIsLoadingSign(true);
     try {
       if (action === "addUpdate") {
-        const newUpdate = await addUpdate(petition.id, adminContent);
+        const newUpdate = await addUpdate(petition.id, updateContent);
         toast.success("Update added successfully");
         setIsAddingUpdate(false);
 
@@ -290,7 +292,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
         setPetition(updatedPetition);
         if (onPetitionUpdated) onPetitionUpdated(updatedPetition);
       } else if (action === "addResponse") {
-        const newResponse = await addResponse(petition.id, adminContent);
+        const newResponse = await addResponse(petition.id, responseContent);
         toast.success("Response added successfully");
         setIsAddingResponse(false);
 
@@ -302,7 +304,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
         setPetition(updatedPetition);
         if (onPetitionUpdated) onPetitionUpdated(updatedPetition);
       } else if (action === "editUpdate" && editingUpdateId) {
-        const updatedUpdate = await editUpdate(editingUpdateId, adminContent);
+        const updatedUpdate = await editUpdate(editingUpdateId, updateContent);
         toast.success("Update edited successfully");
         setEditingUpdateId(null);
 
@@ -317,7 +319,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
       } else if (action === "editResponse" && editingResponseId) {
         const updatedResponse = await editResponse(
           editingResponseId,
-          adminContent,
+          responseContent,
         );
         toast.success("Response edited successfully");
         setEditingResponseId(null);
@@ -330,7 +332,8 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
         if (onPetitionUpdated) onPetitionUpdated(updatedPetition);
       }
 
-      setAdminContent("");
+      setUpdateContent("");
+      setResponseContent("");
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Failed to perform action");
@@ -516,11 +519,11 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
               <CardTitle className="text-base">New Update</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-white rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              <div className="bg-background dark:bg-popover rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-[#F76902] focus-within:ring-offset-2 focus-within:ring-offset-background">
                 <ReactQuill
                   theme="snow"
-                  value={adminContent}
-                  onChange={setAdminContent}
+                  value={updateContent}
+                  onChange={setUpdateContent}
                   modules={modules}
                   formats={formats}
                   className="petition-editor min-h-[200px]"
@@ -531,14 +534,14 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                   variant="ghost"
                   onClick={() => {
                     setIsAddingUpdate(false);
-                    setAdminContent("");
+                    setUpdateContent("");
                   }}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleAddUpdate}
-                  disabled={isLoadingSign || !adminContent.trim()}
+                  disabled={isLoadingSign || !updateContent.trim()}
                 >
                   {isLoadingSign && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -615,9 +618,9 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                 setIsAddingResponse(true);
                 if (hasResponse) {
                   setEditingResponseId(petition.response!.id);
-                  setAdminContent(petition.response!.description);
+                  setResponseContent(petition.response!.description);
                 } else {
-                  setAdminContent("");
+                  setResponseContent("");
                 }
               }}
             >
@@ -635,11 +638,11 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-white rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              <div className="bg-background dark:bg-popover rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-[#F76902] focus-within:ring-offset-2 focus-within:ring-offset-background">
                 <ReactQuill
                   theme="snow"
-                  value={adminContent}
-                  onChange={setAdminContent}
+                  value={responseContent}
+                  onChange={setResponseContent}
                   modules={modules}
                   formats={formats}
                   className="petition-editor min-h-[200px]"
@@ -651,7 +654,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                   onClick={() => {
                     setIsAddingResponse(false);
                     setEditingResponseId(null);
-                    setAdminContent("");
+                    setResponseContent("");
                   }}
                 >
                   Cancel
@@ -662,7 +665,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
                       ? handleAdminAction("editResponse")
                       : handleAddResponse()
                   }
-                  disabled={isLoadingSign || !adminContent.trim()}
+                  disabled={isLoadingSign || !responseContent.trim()}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   {isLoadingSign && (

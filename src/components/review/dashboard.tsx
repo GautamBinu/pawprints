@@ -119,7 +119,8 @@ export function ReviewDashboard({
   const [responseDialogOpen, setResponseDialogOpen] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [dialogContent, setDialogContent] = useState("");
+  const [responseContent, setResponseContent] = useState("");
+  const [updateContent, setUpdateContent] = useState("");
   const [pendingTier, setPendingTier] = useState<number | null>(null);
   const [pendingCategory, setPendingCategory] = useState<string>("");
 
@@ -197,7 +198,8 @@ export function ReviewDashboard({
       setResponseDialogOpen(false);
       setUpdateDialogOpen(false);
       setRejectDialogOpen(false);
-      setDialogContent("");
+      setResponseContent("");
+      setUpdateContent("");
     } catch (error) {
       console.error(error);
       toast.error("Action failed. Please try again.");
@@ -582,7 +584,7 @@ export function ReviewDashboard({
                         variant="outline"
                         className="flex-1 md:flex-none"
                         onClick={() => {
-                          setDialogContent("");
+                          setResponseContent("");
                           setResponseDialogOpen(true);
                         }}
                       >
@@ -594,7 +596,7 @@ export function ReviewDashboard({
                         variant="outline"
                         className="flex-1 md:flex-none"
                         onClick={() => {
-                          setDialogContent("");
+                          setUpdateContent("");
                           setUpdateDialogOpen(true);
                         }}
                       >
@@ -753,14 +755,14 @@ export function ReviewDashboard({
           </DialogHeader>
           <div className="flex-1 flex flex-col gap-2 py-2 min-h-0">
             <Label htmlFor="response">Response Content</Label>
-            <div className="flex-1 bg-background text-foreground rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-[#F76902] focus-within:border-[#F76902] flex flex-col">
+            <div className="flex-1 bg-background text-foreground rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-[#F76902] focus-within:border-[#F76902] focus-within:ring-offset-2 focus-within:ring-offset-background flex flex-col">
               <ReactQuill
                 theme="snow"
-                value={dialogContent}
-                onChange={setDialogContent}
+                value={responseContent}
+                onChange={setResponseContent}
                 modules={modules}
                 formats={formats}
-                className="flex-1 flex flex-col text-foreground [&_.ql-container]:flex-1 [&_.ql-editor]:h-full"
+                className="petition-editor flex-1 flex flex-col text-foreground [&_.ql-container]:flex-1 [&_.ql-editor]:h-full"
               />
             </div>
           </div>
@@ -776,11 +778,11 @@ export function ReviewDashboard({
               onClick={() =>
                 selectedPetition &&
                 handleAction(
-                  () => addResponse(selectedPetition.id, dialogContent),
+                  () => addResponse(selectedPetition.id, responseContent),
                   "Response posted successfully",
                 )
               }
-              disabled={isLoading || !dialogContent.trim()}
+              disabled={isLoading || !responseContent.trim()}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Post Response
@@ -799,14 +801,14 @@ export function ReviewDashboard({
           </DialogHeader>
           <div className="flex-1 flex flex-col gap-2 py-2 min-h-0">
             <Label htmlFor="update">Update Content</Label>
-            <div className="flex-1 bg-background text-foreground rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-[#F76902] focus-within:border-[#F76902] flex flex-col">
+            <div className="flex-1 bg-background text-foreground rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-[#F76902] focus-within:border-[#F76902] focus-within:ring-offset-2 focus-within:ring-offset-background flex flex-col">
               <ReactQuill
                 theme="snow"
-                value={dialogContent}
-                onChange={setDialogContent}
+                value={updateContent}
+                onChange={setUpdateContent}
                 modules={modules}
                 formats={formats}
-                className="flex-1 flex flex-col text-foreground [&_.ql-container]:flex-1 [&_.ql-editor]:h-full"
+                className="petition-editor flex-1 flex flex-col text-foreground [&_.ql-container]:flex-1 [&_.ql-editor]:h-full"
               />
             </div>
           </div>
@@ -822,11 +824,11 @@ export function ReviewDashboard({
               onClick={() =>
                 selectedPetition &&
                 handleAction(
-                  () => addUpdate(selectedPetition.id, dialogContent),
+                  () => addUpdate(selectedPetition.id, updateContent),
                   "Update posted successfully",
                 )
               }
-              disabled={isLoading || !dialogContent.trim()}
+              disabled={isLoading || !updateContent.trim()}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Post Update

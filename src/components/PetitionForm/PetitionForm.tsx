@@ -214,7 +214,7 @@ export default function PetitionForm({
                 Description <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <div className="bg-background rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                <div className="bg-background rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-[#F76902] focus-within:ring-offset-2 focus-within:ring-offset-background">
                   <ReactQuill
                     theme="snow"
                     value={field.value}
