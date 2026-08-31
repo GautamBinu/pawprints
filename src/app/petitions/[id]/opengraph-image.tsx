@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-
+import { PETITION_THRESHOLD } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { PetitionStatus } from "@/types/petition";
 
@@ -135,11 +135,13 @@ export default async function Image({ params }: { params: { id: string } }) {
   }
 
   const progress = Math.min(
-    (petition.signatures / (petition.targetSignatures || 150)) * 100,
+    (petition.signatures / (petition.targetSignatures || PETITION_THRESHOLD)) *
+      100,
     100,
   );
 
-  const isComplete = petition.signatures >= (petition.targetSignatures || 150);
+  const isComplete =
+    petition.signatures >= (petition.targetSignatures || PETITION_THRESHOLD);
 
   return new ImageResponse(
     <div
@@ -302,7 +304,7 @@ export default async function Image({ params }: { params: { id: string } }) {
                     fontFamily: "Geist Mono",
                   }}
                 >
-                  / {petition.targetSignatures || 150} SIGNATURES
+                  / {petition.targetSignatures || PETITION_THRESHOLD} SIGNATURES
                 </div>
               </div>
             </div>

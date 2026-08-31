@@ -1,5 +1,5 @@
 "use client";
-
+import { PETITION_THRESHOLD } from "@/lib/constants";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +30,7 @@ export default function New() {
       title: "",
       description: "",
       category: "",
-      targetSignatures: 150,
+      targetSignatures: PETITION_THRESHOLD,
       expiresDate: "",
     },
     mode: "onChange",

@@ -163,7 +163,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
       title: petition.title,
       description: petition.description,
       category: petition.tags[0]?.name || "",
-      targetSignatures: 150,
+      targetSignatures: petition.targetSignatures || PETITION_THRESHOLD,
       expiresDate: petition.expires,
     },
   });
@@ -195,7 +195,7 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
         title: petition.title,
         description: petition.description,
         category: petition.tags[0]?.name || "",
-        targetSignatures: 150,
+        targetSignatures: petition.targetSignatures || PETITION_THRESHOLD,
         expiresDate: new Date(petition.expires).toISOString().split("T")[0],
       });
     }
