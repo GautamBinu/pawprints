@@ -54,7 +54,7 @@
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.646 0.222 41.116);
+  --primary: oklch(0.6876 0.1943 45.54);
   --primary-foreground: oklch(0.98 0.016 73.684);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
@@ -88,7 +88,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.705 0.213 47.604);
+  --primary: oklch(0.6876 0.1943 45.54);
   --primary-foreground: oklch(0.98 0.016 73.684);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
@@ -152,11 +152,11 @@ body {
 
 .petition-editor .ql-toolbar button:hover,
 .petition-editor .ql-toolbar button:focus {
-  color: #f97316;
+  color: var(--primary);
 }
 
 .petition-editor .ql-toolbar button.ql-active {
-  color: #f97316;
+  color: var(--primary);
 }
 
 .petition-editor .ql-toolbar .ql-stroke {
@@ -165,11 +165,11 @@ body {
 
 .petition-editor .ql-toolbar button:hover .ql-stroke,
 .petition-editor .ql-toolbar button:focus .ql-stroke {
-  stroke: #f97316;
+  stroke: var(--primary);
 }
 
 .petition-editor .ql-toolbar button.ql-active .ql-stroke {
-  stroke: #f97316;
+  stroke: var(--primary);
 }
 
 .petition-editor .ql-toolbar .ql-fill {
@@ -178,11 +178,11 @@ body {
 
 .petition-editor .ql-toolbar button:hover .ql-fill,
 .petition-editor .ql-toolbar button:focus .ql-fill {
-  fill: #f97316;
+  fill: var(--primary);
 }
 
 .petition-editor .ql-toolbar button.ql-active .ql-fill {
-  fill: #f97316;
+  fill: var(--primary);
 }
 
 /* Petition Description HTML Rendering */
@@ -263,7 +263,7 @@ body {
 }
 
 .prose a {
-  color: #f97316;
+  color: var(--primary);
   text-decoration: underline;
 }
 
@@ -323,4 +323,39 @@ body {
 .dark .ql-toolbar button:hover .ql-fill,
 .dark .ql-toolbar button.ql-active .ql-fill {
   fill: var(--primary);
+}
+
+
+.dark .petition-editor .ql-container {
+  background-color: var(--popover);
+  border: none !important;
+}
+
+.dark .petition-editor .ql-editor {
+  background-color: transparent; 
+  color: var(--foreground);
+  min-height: 300px;
+}
+
+.dark .petition-editor .ql-editor.ql-blank::before {
+  color: var(--muted-foreground);
+}
+
+/* Quill link tooltip/dialog should follow the app theme */
+.petition-editor .ql-tooltip {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+}
+
+.petition-editor .ql-tooltip input {
+  color: var(--foreground);
+  background-color: var(--background);
+  border: 1px solid var(--border);
+}
+
+.dark .petition-editor .ql-tooltip {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
 }

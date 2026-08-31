@@ -25,6 +25,7 @@ import {
   hasPermission,
   getRequiredPermissionForAction,
   PermissionAction,
+  PERMISSIONS,
 } from "@/lib/permissions";
 import { logAction } from "@/lib/audit";
 import { containsMaliciousLinks, extractUrls } from "@/lib/safe-browsing";
@@ -1159,7 +1160,7 @@ export async function getNotificationSettings() {
       update: true,
       response: true,
       reported: false,
-      threshold: false,
+      threshold: true,
     };
   }
 
@@ -1197,7 +1198,31 @@ export async function verifyExternalLink(url: string) {
   const { isSafe } = await containsMaliciousLinks([url]);
   return isSafe;
 }
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
+/** Cap the displayed URL so a very long one cannot break the layout. */
+function truncateForDisplay(value: string, max = 100): string {
+  return value.length > max ? `${value.slice(0, max)}\u2026` : value;
+}
+
+/**
+ * The URL is escaped, so a flagged URL containing HTML metacharacters renders
+ * as inert text rather than executing.
+ */
+function unsafeLinkMarkup(url: string): string {
+  const display = escapeHtml(truncateForDisplay(url));
+  return (
+    `<span class="text-destructive font-mono text-sm bg-destructive/10 px-1 rounded" ` +
+    `title="This link has been flagged as unsafe">[UNSAFE LINK: ${display}]</span>`
+  );
+}
 async function processContent(html: string) {
   const urls = new Set<string>();
 
@@ -1228,24 +1253,52 @@ async function processContent(html: string) {
       "gi",
     );
 
-    processedHtml = processedHtml.replace(rewrittenRegex, (match, content) => {
-      return `<span class="text-destructive font-mono text-sm bg-destructive/10 px-1 rounded" title="This link has been flagged as unsafe">[UNSAFE LINK: ${url}]</span>`;
-    });
-
+    processedHtml = processedHtml.replace(rewrittenRegex, () =>
+      unsafeLinkMarkup(url),
+    );
     const safeUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const rawRegex = new RegExp(
       `<a\\s+(?:[^>]*?\\s+)?href="${safeUrl}"(?:[^>]*?)>(.*?)<\\/a>`,
       "gi",
     );
 
-    processedHtml = processedHtml.replace(rawRegex, (match, content) => {
-      return `<span class="text-destructive font-mono text-sm bg-destructive/10 px-1 rounded" title="This link has been flagged as unsafe">[UNSAFE LINK: ${url}]</span>`;
-    });
+    processedHtml = processedHtml.replace(rawRegex, () =>
+      unsafeLinkMarkup(url),
+    );
   }
   return processedHtml;
 }
 
+/**
+ * Whether the caller may view a petition in a non-Published state.
+ *
+ * Visible to the author, to staff, and to superadmins. Everyone else —
+ * including unauthenticated callers — is treated as if it does not exist.
+ */
+async function canViewUnpublishedPetition(authorId: string): Promise<boolean> {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) return false;
+
+  const userId = tokens.decodedToken.uid;
+  if (!userId) return false;
+
+  if (authorId === userId) return true;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isStaff: true, isSuperAdmin: true },
+  });
+
+  return Boolean(user?.isStaff || user?.isSuperAdmin);
+}
+
+/**
+ * Returns null rather than throwing, so an unauthorized response is
+ * indistinguishable from a petition that does not exist.
+ */
 export async function getPetition(id: number) {
+  if (!Number.isInteger(id) || id <= 0) return null;
+
   const petition = await prisma.petition.findUnique({
     where: { id },
     include: {
@@ -1257,6 +1310,15 @@ export async function getPetition(id: number) {
   });
 
   if (!petition) return null;
+
+  // Checked before processContent: that path makes Safe Browsing calls, and an
+  // unauthorized caller should not spend quota on content they cannot read.
+  if (
+    petition.status !== PetitionStatus.Published &&
+    !(await canViewUnpublishedPetition(petition.authorId))
+  ) {
+    return null;
+  }
 
   const [description, responseDescription, updates] = await Promise.all([
     processContent(petition.description),
@@ -1347,4 +1409,183 @@ export async function getUsers() {
       },
     },
   });
+}
+
+/**
+ * Permission and role administration.
+ *
+ * These are the only writers of `permissions`, `isStaff` and `isSuperAdmin`.
+ * Before this existed, every role change was a manual UPDATE against the
+ * production database, with no audit trail and no way to revoke.
+ *
+ * All three are superadmin-only. `checkPermission` is deliberately NOT used
+ * here: it grants on any matching bit, and no staff permission should ever
+ * confer the ability to grant permissions.
+ */
+async function requireSuperAdmin() {
+  const tokens = await getTokens(await cookies(), authConfig);
+  if (!tokens) throw new Error("Unauthorized");
+
+  const userId = tokens.decodedToken.uid;
+  if (!userId) throw new Error("Unauthorized");
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isSuperAdmin: true },
+  });
+
+  if (!user?.isSuperAdmin) {
+    throw new Error("Unauthorized: Superadmin access required");
+  }
+
+  return userId;
+}
+
+/** Every bit currently defined, for validating incoming bitmasks. */
+const ALL_PERMISSIONS = Object.values(PERMISSIONS).reduce(
+  (acc, value) => acc | value,
+  0,
+);
+
+export async function updateUserPermissions(
+  targetUserId: string,
+  permissions: number,
+) {
+  const actorId = await requireSuperAdmin();
+
+  if (!Number.isInteger(permissions) || permissions < 0) {
+    throw new Error("Invalid permissions value");
+  }
+
+  // Reject unknown bits rather than silently storing them: a stray high bit
+  // would survive here and could be granted meaning by a later release.
+  if ((permissions & ~ALL_PERMISSIONS) !== 0) {
+    throw new Error("Invalid permissions value: unknown permission bits");
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: {
+      permissions: true,
+      isStaff: true,
+      isSuperAdmin: true,
+      email: true,
+    },
+  });
+  if (!target) throw new Error("User not found");
+
+  // Granting permissions to someone who is not staff would be a no-op —
+  // checkPermission requires isStaff AND the bit — so surface it instead of
+  // storing bits that do nothing.
+  if (permissions > 0 && !target.isStaff && !target.isSuperAdmin) {
+    throw new Error("User must be staff before permissions can be granted");
+  }
+
+  await prisma.user.update({
+    where: { id: targetUserId },
+    data: { permissions },
+  });
+
+  await logAction(
+    "UPDATE_USER_PERMISSIONS",
+    {
+      targetUserId,
+      targetEmail: target.email,
+      before: target.permissions,
+      after: permissions,
+    },
+    actorId,
+  );
+
+  revalidatePath("/admin");
+}
+
+export async function setStaffStatus(targetUserId: string, isStaff: boolean) {
+  const actorId = await requireSuperAdmin();
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: {
+      isStaff: true,
+      permissions: true,
+      isSuperAdmin: true,
+      email: true,
+    },
+  });
+  if (!target) throw new Error("User not found");
+
+  // Revoking staff zeroes the bitmask in the same statement. Leaving stale
+  // bits behind would mean re-granting staff silently restores every
+  // permission the user previously held.
+  const data = isStaff ? { isStaff: true } : { isStaff: false, permissions: 0 };
+
+  await prisma.user.update({
+    where: { id: targetUserId },
+    data,
+  });
+
+  await logAction(
+    isStaff ? "GRANT_STAFF" : "REVOKE_STAFF",
+    {
+      targetUserId,
+      targetEmail: target.email,
+      permissionsBefore: target.permissions,
+      permissionsAfter: isStaff ? target.permissions : 0,
+    },
+    actorId,
+  );
+
+  revalidatePath("/admin");
+}
+
+export async function setSuperAdminStatus(
+  targetUserId: string,
+  isSuperAdmin: boolean,
+) {
+  const actorId = await requireSuperAdmin();
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { isSuperAdmin: true, email: true },
+  });
+  if (!target) throw new Error("User not found");
+
+  if (!isSuperAdmin) {
+    // Guard 1: no self-demotion. Without this a superadmin can strip their
+    // own access and lose the ability to restore it.
+    if (targetUserId === actorId) {
+      throw new Error("You cannot remove your own superadmin access");
+    }
+
+    // Guard 2: never remove the last superadmin. Two admins demoting each
+    // other would otherwise leave the instance unadministerable, recoverable
+    // only by direct database access.
+    const superAdminCount = await prisma.user.count({
+      where: { isSuperAdmin: true },
+    });
+    if (superAdminCount <= 1) {
+      throw new Error("Cannot remove the last superadmin");
+    }
+  }
+
+  await prisma.user.update({
+    where: { id: targetUserId },
+    data: isSuperAdmin
+      ? { isSuperAdmin: true }
+      : { isSuperAdmin: false, isStaff: false, permissions: 0 },
+  });
+
+  await logAction(
+    isSuperAdmin ? "GRANT_SUPERADMIN" : "REVOKE_SUPERADMIN",
+    { targetUserId, targetEmail: target.email },
+    actorId,
+  );
+
+  revalidatePath("/admin");
+}
+
+/** The id of the signed-in user, so the UI can disable self-affecting controls. */
+export async function getCurrentUserId(): Promise<string | null> {
+  const tokens = await getTokens(await cookies(), authConfig);
+  return tokens?.decodedToken.uid ?? null;
 }

@@ -31,6 +31,7 @@ export default async function RootLayout({
   const user = tokens ? toUser(tokens) : null;
 
   let hasAdminAccess = false;
+  let isSuperAdmin = false;
   if (user) {
     const dbUser = await prisma.user.findUnique({
       where: { id: user.uid },
@@ -38,6 +39,7 @@ export default async function RootLayout({
     });
     if (dbUser) {
       hasAdminAccess = dbUser.isStaff || dbUser.isSuperAdmin;
+      isSuperAdmin = dbUser.isSuperAdmin;
     }
   }
 
@@ -49,7 +51,10 @@ export default async function RootLayout({
         <NextTopLoader color="var(--foreground)" showSpinner={false} />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider user={user}>
-            <Header hasAdminAccess={hasAdminAccess} />
+            <Header
+              hasAdminAccess={hasAdminAccess}
+              isSuperAdmin={isSuperAdmin}
+            />
             <main className="flex-1">{children}</main>
           </AuthProvider>
           <Footer />

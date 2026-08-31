@@ -27,9 +27,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import moment from "moment";
 import { PERMISSIONS } from "@/lib/permissions";
-import { Search } from "lucide-react";
+import { Search, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import EditUserDialog from "./EditUserDialog";
 
 const getPermissionNames = (permInt: number) => {
   if (!permInt) return [];
@@ -45,16 +54,25 @@ const getPermissionNames = (permInt: number) => {
 interface AdminDashboardProps {
   logs: any[];
   users: any[];
+  currentUserId: string | null;
+  superAdminCount: number;
 }
 
-export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
+export default function AdminDashboard({
+  logs,
+  users,
+  currentUserId,
+  superAdminCount,
+}: AdminDashboardProps) {
   // Logs State
   const [logSearch, setLogSearch] = useState("");
   const [logActionFilter, setLogActionFilter] = useState("All");
+  const [viewingLog, setViewingLog] = useState<any | null>(null);
 
   // Users State
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("All");
+  const [editingUser, setEditingUser] = useState<any | null>(null);
 
   // Filtered Logs
   const uniqueActions = useMemo(() => {
@@ -181,8 +199,17 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="max-w-[300px] truncate text-xs font-mono py-2">
-                            {log.details}
+                          <TableCell className="max-w-[300px] py-2">
+                            {log.details ? (
+                              <button
+                                type="button"
+                                onClick={() => setViewingLog(log)}
+                                className="block w-full truncate text-left text-xs font-mono hover:text-primary hover:underline"
+                                title="Click to view full details"
+                              >
+                                {log.details}
+                              </button>
+                            ) : null}
                           </TableCell>
                           <TableCell className="whitespace-nowrap text-xs text-muted-foreground py-2">
                             {moment(log.createdAt).format("MMM D, YYYY h:mm A")}
@@ -244,13 +271,14 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
                       <TableHead>Petitions</TableHead>
                       <TableHead>Signed</TableHead>
                       <TableHead>Joined</TableHead>
+                      <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={7}
+                          colSpan={8}
                           className="h-24 text-center text-muted-foreground"
                         >
                           No users found matching your criteria.
@@ -304,6 +332,16 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
                           <TableCell className="text-xs text-muted-foreground py-2">
                             {moment(user.createdAt).format("MMM D, YYYY")}
                           </TableCell>
+                          <TableCell className="py-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingUser(user)}
+                              aria-label={`Edit access for ${user.name || user.email}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -317,6 +355,46 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {editingUser && (
+        <EditUserDialog
+          key={editingUser.id}
+          user={editingUser}
+          currentUserId={currentUserId}
+          superAdminCount={superAdminCount}
+          open={!!editingUser}
+          onOpenChange={(open) => !open && setEditingUser(null)}
+        />
+      {viewingLog && (
+        <Dialog open onOpenChange={() => setViewingLog(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{viewingLog.action}</DialogTitle>
+              <DialogDescription>
+                {viewingLog.user?.name || "Unknown"}
+                {viewingLog.user?.email ? ` (${viewingLog.user.email})` : ""}
+                {" · "}
+                {moment(viewingLog.createdAt).format("MMM D, YYYY h:mm A")}
+              </DialogDescription>
+            </DialogHeader>
+            {/* Pretty-printed when the details parse as JSON, raw otherwise —
+                details is a free-form string column. */}
+            <pre className="max-h-[60vh] overflow-auto rounded bg-muted p-3 text-xs whitespace-pre-wrap break-all">
+              {(() => {
+                try {
+                  return JSON.stringify(
+                    JSON.parse(viewingLog.details),
+                    null,
+                    2,
+                  );
+                } catch {
+                  return viewingLog.details;
+                }
+              })()}
+            </pre>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

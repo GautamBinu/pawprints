@@ -1,6 +1,11 @@
 import { AdminGuard } from "@/components";
 import AdminDashboard from "@/components/Admin/AdminDashboard";
-import { getAuditLogs, getUsers, getStaffPermissions } from "@/app/actions";
+import {
+  getAuditLogs,
+  getUsers,
+  getStaffPermissions,
+  getCurrentUserId,
+} from "@/app/actions";
 import { redirect } from "next/navigation";
 
 export default async function AdminPage() {
@@ -29,9 +34,19 @@ export default async function AdminPage() {
     console.error("Error loading admin data:", error);
   }
 
+  // Needed by the editor dialog to disable self-affecting controls: a
+  // superadmin cannot demote themselves, nor remove the last superadmin.
+  const currentUserId = await getCurrentUserId();
+  const superAdminCount = users.filter((u: any) => u.isSuperAdmin).length;
+
   return (
     <AdminGuard>
-      <AdminDashboard logs={logs} users={users} />
+      <AdminDashboard
+        logs={logs}
+        users={users}
+        currentUserId={currentUserId}
+        superAdminCount={superAdminCount}
+      />
     </AdminGuard>
   );
 }
