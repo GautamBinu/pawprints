@@ -36,7 +36,9 @@ import {
 } from "@/components/ui/dialog";
 import moment from "moment";
 import { PERMISSIONS } from "@/lib/permissions";
-import { Search } from "lucide-react";
+import { Search, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import EditUserDialog from "./EditUserDialog";
 
 const getPermissionNames = (permInt: number) => {
   if (!permInt) return [];
@@ -52,9 +54,16 @@ const getPermissionNames = (permInt: number) => {
 interface AdminDashboardProps {
   logs: any[];
   users: any[];
+  currentUserId: string | null;
+  superAdminCount: number;
 }
 
-export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
+export default function AdminDashboard({
+  logs,
+  users,
+  currentUserId,
+  superAdminCount,
+}: AdminDashboardProps) {
   // Logs State
   const [logSearch, setLogSearch] = useState("");
   const [logActionFilter, setLogActionFilter] = useState("All");
@@ -63,6 +72,7 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
   // Users State
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("All");
+  const [editingUser, setEditingUser] = useState<any | null>(null);
 
   // Filtered Logs
   const uniqueActions = useMemo(() => {
@@ -261,13 +271,14 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
                       <TableHead>Petitions</TableHead>
                       <TableHead>Signed</TableHead>
                       <TableHead>Joined</TableHead>
+                      <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={7}
+                          colSpan={8}
                           className="h-24 text-center text-muted-foreground"
                         >
                           No users found matching your criteria.
@@ -321,6 +332,16 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
                           <TableCell className="text-xs text-muted-foreground py-2">
                             {moment(user.createdAt).format("MMM D, YYYY")}
                           </TableCell>
+                          <TableCell className="py-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingUser(user)}
+                              aria-label={`Edit access for ${user.name || user.email}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -335,6 +356,15 @@ export default function AdminDashboard({ logs, users }: AdminDashboardProps) {
         </TabsContent>
       </Tabs>
 
+      {editingUser && (
+        <EditUserDialog
+          key={editingUser.id}
+          user={editingUser}
+          currentUserId={currentUserId}
+          superAdminCount={superAdminCount}
+          open={!!editingUser}
+          onOpenChange={(open) => !open && setEditingUser(null)}
+        />
       {viewingLog && (
         <Dialog open onOpenChange={() => setViewingLog(null)}>
           <DialogContent className="max-w-2xl">
