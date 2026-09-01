@@ -365,6 +365,7 @@ export default function AdminDashboard({
           open={!!editingUser}
           onOpenChange={(open) => !open && setEditingUser(null)}
         />
+      )}
       {viewingLog && (
         <Dialog open onOpenChange={() => setViewingLog(null)}>
           <DialogContent className="max-w-2xl">
