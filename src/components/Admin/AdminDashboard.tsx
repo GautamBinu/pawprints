@@ -51,6 +51,83 @@ const getPermissionNames = (permInt: number) => {
   return names;
 };
 
+const DETAIL_LABELS: Record<string, string> = {
+  petitionId: "Petition",
+  updateId: "Update",
+  responseId: "Response",
+  targetUserId: "User ID",
+  targetEmail: "User",
+  tierId: "Tier",
+  categoryName: "Category",
+  title: "Title",
+  inProgress: "In progress",
+  before: "Before",
+  after: "After",
+  permissionsBefore: "Permissions before",
+  permissionsAfter: "Permissions after",
+  update: "Update notifications",
+  response: "Response notifications",
+  reported: "Report notifications",
+  threshold: "Threshold notifications",
+};
+
+const PERMISSION_KEYS = new Set([
+  "before",
+  "after",
+  "permissionsBefore",
+  "permissionsAfter",
+]);
+
+function formatDetailValue(key: string, value: unknown): string {
+  if (value === null || value === undefined) return "—";
+
+  if (PERMISSION_KEYS.has(key) && typeof value === "number") {
+    const names = getPermissionNames(value);
+    return names.length > 0
+      ? `${names.join(", ")} (${value})`
+      : `None (${value})`;
+  }
+
+  if (key === "petitionId" || key === "updateId" || key === "responseId") {
+    return `#${value}`;
+  }
+
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "object") return JSON.stringify(value);
+
+  return String(value);
+}
+
+function parseDetails(
+  details: string | null | undefined,
+): { label: string; value: string }[] | null {
+  if (!details) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(details);
+  } catch {
+    return null;
+  }
+
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+
+  return Object.entries(parsed as Record<string, unknown>).map(
+    ([key, value]) => ({
+      label: DETAIL_LABELS[key] ?? key,
+      value: formatDetailValue(key, value),
+    }),
+  );
+}
+
+function summariseDetails(details: string | null | undefined): string {
+  const pairs = parseDetails(details);
+  if (!pairs) return details ?? "";
+  return pairs.map((p) => `${p.label}: ${p.value}`).join(" · ");
+}
+
 interface AdminDashboardProps {
   logs: any[];
   users: any[];
@@ -204,10 +281,10 @@ export default function AdminDashboard({
                               <button
                                 type="button"
                                 onClick={() => setViewingLog(log)}
-                                className="block w-full truncate text-left text-xs font-mono hover:text-primary hover:underline"
+                                className="block w-full truncate text-left text-xs hover:text-primary hover:underline"
                                 title="Click to view full details"
                               >
-                                {log.details}
+                                {summariseDetails(log.details)}
                               </button>
                             ) : null}
                           </TableCell>
@@ -378,21 +455,33 @@ export default function AdminDashboard({
                 {moment(viewingLog.createdAt).format("MMM D, YYYY h:mm A")}
               </DialogDescription>
             </DialogHeader>
-            {/* Pretty-printed when the details parse as JSON, raw otherwise —
-                details is a free-form string column. */}
-            <pre className="max-h-[60vh] overflow-auto rounded bg-muted p-3 text-xs whitespace-pre-wrap break-all">
-              {(() => {
-                try {
-                  return JSON.stringify(
-                    JSON.parse(viewingLog.details),
-                    null,
-                    2,
-                  );
-                } catch {
-                  return viewingLog.details;
-                }
-              })()}
-            </pre>
+            {(() => {
+              const pairs = parseDetails(viewingLog.details);
+
+              if (!pairs) {
+                return (
+                  <pre className="max-h-[60vh] overflow-auto rounded bg-muted p-3 text-xs whitespace-pre-wrap break-all">
+                    {viewingLog.details || "No details recorded."}
+                  </pre>
+                );
+              }
+
+              return (
+                <dl className="max-h-[60vh] overflow-auto rounded bg-muted p-4 text-sm">
+                  {pairs.map((pair) => (
+                    <div
+                      key={pair.label}
+                      className="flex gap-4 py-1.5 border-b border-border/40 last:border-0"
+                    >
+                      <dt className="w-44 shrink-0 text-muted-foreground">
+                        {pair.label}
+                      </dt>
+                      <dd className="flex-1 break-words">{pair.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              );
+            })()}
           </DialogContent>
         </Dialog>
       )}
