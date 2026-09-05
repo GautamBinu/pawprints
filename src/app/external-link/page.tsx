@@ -22,6 +22,11 @@ function ExternalLinkContent() {
   const [isChecking, setIsChecking] = useState(true);
   const [isDangerous, setIsDangerous] = useState(false);
 
+  const isInstagramIOSWebView = () => {
+    const userAgent = navigator.userAgent || "";
+    return /Instagram/i.test(userAgent) && /iPhone|iPad|iPod/i.test(userAgent);
+  };
+
   const isValidUrl = (string: string) => {
     try {
       const url = new URL(string);
@@ -30,6 +35,21 @@ function ExternalLinkContent() {
       return false;
     }
   };
+
+  useEffect(() => {
+    if (!targetUrl || !isValidUrl(targetUrl)) return;
+
+    if (isInstagramIOSWebView()) {
+      const instagramUrl = `instagram://extbrowser/?url=${encodeURIComponent(targetUrl)}`;
+      window.location.href = instagramUrl;
+
+      const fallbackTimer = window.setTimeout(() => {
+        window.location.href = targetUrl;
+      }, 1500);
+
+      return () => window.clearTimeout(fallbackTimer);
+    }
+  }, [targetUrl]);
 
   useEffect(() => {
     if (!targetUrl || !isValidUrl(targetUrl)) {
