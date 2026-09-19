@@ -1,15 +1,32 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import {
-  authMiddleware,
-  redirectToLogin,
-  redirectToHome,
-} from "next-firebase-auth-edge";
+import { authMiddleware, redirectToHome } from "next-firebase-auth-edge";
 import { TokenSet } from "next-firebase-auth-edge/auth";
 import { authConfig, serverConfig } from "./app/config/server-config";
 
 const PUBLIC_PATHS = ["/login"];
+const SESSION_EXPIRED_PATH = "/sessionexpired";
 const PRIVATE_PATHS = ["/profile", "/create", "/review", "/onboarding"];
+
+function shouldRedirectToSessionExpired(pathname: string) {
+  if (
+    pathname === "/" ||
+    pathname.startsWith(SESSION_EXPIRED_PATH) ||
+    pathname.startsWith("/logout") ||
+    pathname.startsWith("/api") ||
+    PUBLIC_PATHS.includes(pathname)
+  ) {
+    return false;
+  }
+
+  return (
+    PRIVATE_PATHS.includes(pathname) ||
+    pathname.startsWith("/profile/") ||
+    pathname.startsWith("/create/") ||
+    pathname.startsWith("/review/") ||
+    pathname.startsWith("/onboarding/")
+  );
+}
 
 export async function middleware(request: NextRequest) {
   return authMiddleware(request, {
@@ -27,6 +44,10 @@ export async function middleware(request: NextRequest) {
         return redirectToHome(request);
       }
 
+      if (request.nextUrl.pathname.startsWith(SESSION_EXPIRED_PATH)) {
+        return NextResponse.next();
+      }
+
       // The root layout gates accounts still on a temporary password, and a
       // layout cannot see the current route. Middleware runs on the edge and
       // cannot reach Prisma, so it forwards the path instead.
@@ -41,18 +62,20 @@ export async function middleware(request: NextRequest) {
     handleInvalidToken: async (reason) => {
       console.info("Missing or malformed credentials", { reason });
 
-      return redirectToLogin(request, {
-        path: "/login",
-        privatePaths: PRIVATE_PATHS,
-      });
+      if (!shouldRedirectToSessionExpired(request.nextUrl.pathname)) {
+        return NextResponse.next();
+      }
+
+      return NextResponse.redirect(new URL(SESSION_EXPIRED_PATH, request.url));
     },
     handleError: async (error) => {
       console.error("Unhandled authentication error", { error });
 
-      return redirectToLogin(request, {
-        path: "/login",
-        privatePaths: PRIVATE_PATHS,
-      });
+      if (!shouldRedirectToSessionExpired(request.nextUrl.pathname)) {
+        return NextResponse.next();
+      }
+
+      return NextResponse.redirect(new URL(SESSION_EXPIRED_PATH, request.url));
     },
     getMetadata: async (tokens: TokenSet) => {
       // Here you can load any data related to the user

@@ -9,27 +9,37 @@ import {
 
 interface LogoutPageProps {
   logoutAction: () => void;
+  title?: string;
+  description?: string;
+  buttonLabel?: string;
 }
 
-export default function LogoutPage({ logoutAction }: LogoutPageProps) {
+export default function LogoutPage({
+  logoutAction,
+  title = "Sign out",
+  description = "Are you sure you want to log out?",
+  buttonLabel = "Click here to sign out",
+}: LogoutPageProps) {
   return (
-    <div>
+    <div className="touch-manipulation">
       <div className="min-h-[80vh] flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader className="space-y-4 flex flex-col items-center text-center pb-2">
             <div className="space-y-1">
               <CardTitle className="text-2xl font-bold text-[#F76902]">
-                Sign out
+                {title}
               </CardTitle>
-              <CardDescription>
-                Are you sure you want to log out?
-              </CardDescription>
+              <CardDescription>{description}</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form action={logoutAction}>
-              <Button type="submit" variant="destructive" className="w-full">
-                Click here to sign out
+            <form action={logoutAction} className="w-full">
+              <Button
+                type="submit"
+                variant="destructive"
+                className="w-full touch-manipulation active:scale-[0.98]"
+              >
+                {buttonLabel}
               </Button>
             </form>
           </CardContent>

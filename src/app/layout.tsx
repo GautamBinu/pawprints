@@ -56,7 +56,8 @@ export default async function RootLayout({
         const exempt =
           pathname.startsWith("/onboarding") ||
           pathname.startsWith("/login") ||
-          pathname.startsWith("/logout");
+            pathname.startsWith("/logout") ||
+            pathname.startsWith("/sessionexpired");
         if (!exempt) {
           redirect("/onboarding");
         }
