@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import { getTokens } from "next-firebase-auth-edge";
 import { cookies } from "next/headers";
-import { authConfig } from "./config/server-config";
+import { authConfig } from "@/app/config/server-config";
 import { getPetitions } from "@/app/actions";
 import PublicHome from "@/components/Home/PublicHome";
 import LoggedInHome from "@/components/Home/LoggedInHome";

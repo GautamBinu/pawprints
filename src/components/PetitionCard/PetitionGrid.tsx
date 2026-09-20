@@ -4,6 +4,7 @@ import React from "react";
 import PetitionCard from "./PetitionCard";
 import { Petition } from "../../types/petition";
 import { PETITION_THRESHOLD } from "@/lib/constants";
+import { rememberPetitionPreview } from "@/lib/petition-preview";
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 
@@ -73,7 +74,12 @@ const PetitionGrid: React.FC<PetitionGridProps> = ({
             status={petition.status}
             expires={petition.expires}
             showStatus={showStatus}
-            onClick={() => onPetitionClick(petition)}
+            onClick={() => {
+              // What the destination can show instantly, before it has
+              // fetched anything. See lib/petition-preview.ts.
+              rememberPetitionPreview(petition);
+              onPetitionClick(petition);
+            }}
           />
         ))}
       </div>

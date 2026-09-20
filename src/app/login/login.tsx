@@ -35,6 +35,7 @@ export async function loginAction(
   let uid: string;
   let email: string;
   let name: string | undefined;
+  let emailVerified = false;
 
   try {
     // checkRevoked catches passwords that were regenerated and accounts that
@@ -43,6 +44,7 @@ export async function loginAction(
     uid = decoded.uid;
     email = normalizeEmail(decoded.email ?? "");
     name = typeof decoded.name === "string" ? decoded.name : undefined;
+    emailVerified = decoded.email_verified === true;
   } catch (error) {
     console.error("Failed to verify ID token during login", error);
     return { error: "Could not verify your sign-in. Please try again." };
@@ -55,6 +57,18 @@ export async function loginAction(
   if (!isAllowedEmail(email)) {
     return {
       error: `PawPrints is only open to the RIT community. Sign in with your ${ALLOWED_EMAIL_DESCRIPTION} address.`,
+    };
+  }
+
+  // A suffix check on the address is worthless if the address was never
+  // proven. Firebase's public API key lets anyone self-register any email —
+  // "whoever@rit.edu" included — and hand back a token whose only tell is
+  // email_verified=false. Google identities always arrive verified, and
+  // issued accounts are created verified, so this excludes nothing legitimate.
+  if (!emailVerified) {
+    return {
+      error:
+        "This account's email address has not been verified. Sign in with your RIT Google account, or use the account issued to you.",
     };
   }
 

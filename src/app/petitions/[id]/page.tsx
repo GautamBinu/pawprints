@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getPetition } from "@/app/actions";
 import PetitionPageClient from "@/components/PetitionPage/PetitionPageClient";
 import { Metadata } from "next";
@@ -14,6 +15,14 @@ interface PageProps {
   }>;
 }
 
+/**
+ * `generateMetadata` and the page body both need the petition, and Next runs
+ * them separately. Without this the whole load — Safe Browsing checks over
+ * every link in the body, the response and each update — happened twice per
+ * visit. `cache` scopes the memo to one request, so it is fetched once.
+ */
+const loadPetition = cache(getPetition);
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
@@ -21,7 +30,7 @@ export async function generateMetadata({
   const id = parseInt(resolvedParams.id);
   if (isNaN(id)) return { title: "Petition Not Found" };
 
-  const petition = await getPetition(id);
+  const petition = await loadPetition(id);
   if (!petition) return { title: "Petition Not Found" };
 
   const description = petition.description
@@ -71,7 +80,7 @@ export default async function PetitionPage({ params }: PageProps) {
     return <PetitionNotFound />;
   }
 
-  const petition = await getPetition(id);
+  const petition = await loadPetition(id);
 
   if (!petition) {
     return <PetitionNotFound />;

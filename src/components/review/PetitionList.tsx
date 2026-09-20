@@ -18,6 +18,7 @@ import {
 import { formatDateTime, formatRelative } from "@/lib/dates";
 import { SignatureMeter } from "./SignatureMeter";
 import { CategoryBadge } from "@/lib/category-colors";
+import { rememberPetitionPreview } from "@/lib/petition-preview";
 import { cn } from "@/lib/utils";
 import { PETITION_CATEGORIES, PETITION_THRESHOLD } from "@/lib/constants";
 import {
@@ -245,6 +246,7 @@ function PetitionRow({ petition }: { petition: Petition }) {
     <li className="transition-colors hover:bg-muted/40">
       <Link
         href={`/review/${petition.id}`}
+        onClick={() => rememberPetitionPreview(petition)}
         className="flex items-start gap-3 px-3 py-3 sm:px-4"
       >
         <PetitionStateIcon status={petition.status} className="mt-0.5 shrink-0" />

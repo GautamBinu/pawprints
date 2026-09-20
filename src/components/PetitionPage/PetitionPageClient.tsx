@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Badge } from "../ui/badge";
 import { PetitionStatusChip } from "@/lib/petition-status";
 import { CategoryBadge } from "@/lib/category-colors";
+import { rememberPetitionPreview } from "@/lib/petition-preview";
 import { Button } from "../ui/button";
 import { ButtonGroup } from "../ui/button-group";
 import { Separator } from "../ui/separator";
@@ -117,6 +118,14 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
   React.useEffect(() => {
     markVisited(petition.id);
   }, [petition.id, markVisited]);
+
+  // Keep the loading-state preview honest. It was written from a list card
+  // that may be minutes old; the fetched petition is the truth, and so is
+  // every local change after it — a signature, an edit, a status flip. Any
+  // later navigation here paints the current numbers, not the stale ones.
+  React.useEffect(() => {
+    rememberPetitionPreview(petition);
+  }, [petition]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

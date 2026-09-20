@@ -5,6 +5,8 @@ import {
   redirectToLogin,
   redirectToHome,
 } from "next-firebase-auth-edge";
+import { removeCookies } from "next-firebase-auth-edge/lib/next/cookies";
+import { isAllowedEmail } from "@/lib/email-domain";
 import { TokenSet } from "next-firebase-auth-edge/auth";
 import { authConfig, serverConfig } from "./app/config/server-config";
 
@@ -22,6 +24,25 @@ export async function middleware(request: NextRequest) {
     cookieSerializeOptions: authConfig.cookieSerializeOptions,
     serviceAccount: serverConfig.serviceAccount,
     handleValidToken: async ({ token, decodedToken }, headers) => {
+      // The RIT-only rule, enforced on every request rather than only at
+      // sign-in. A session cookie proves the token was valid for this
+      // Firebase project, not that the account is one we admit — and there
+      // are ways to mint a cookie that never pass through loginAction. So a
+      // non-RIT session is torn down here regardless of how it was made.
+      if (
+        !isAllowedEmail(decodedToken.email) ||
+        decodedToken.email_verified !== true
+      ) {
+        const response = NextResponse.redirect(
+          new URL("/login?reason=rit-only", request.url),
+        );
+        removeCookies(request.headers, response, {
+          cookieName: authConfig.cookieName,
+          cookieSerializeOptions: authConfig.cookieSerializeOptions,
+        });
+        return response;
+      }
+
       // Authenticated user should not be able to access /login, /register and /reset-password routes
       if (PUBLIC_PATHS.includes(request.nextUrl.pathname)) {
         return redirectToHome(request);
@@ -68,10 +89,12 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/api/login",
-    "/api/logout",
-    "/",
-    "/((?!_next|favicon.ico|api|.*\\.).*)",
-  ],
+  // `/api/login` and `/api/logout` are deliberately NOT matched. The library
+  // would otherwise serve them itself and mint a session cookie from any
+  // bearer token for this Firebase project — no domain check, no disabled
+  // check, no verified-email check — which is exactly the gate loginAction
+  // exists to apply. Nothing in the app calls either route; with no route
+  // file and no middleware match they 404. `loginPath` / `logoutPath` stay in
+  // the options above only because the library's types require them.
+  matcher: ["/", "/((?!_next|favicon.ico|api|.*\\.).*)"],
 };

@@ -31,13 +31,18 @@ import type { LoginResult } from "./login";
 
 interface LoginPageProps {
   loginAction: (idToken: string) => Promise<LoginResult | void>;
+  /** A message to show on arrival, e.g. why the previous session ended. */
+  initialError?: string | null;
 }
 
 type View = "options" | "email" | "forgot";
 
-export default function LoginPage({ loginAction }: LoginPageProps) {
+export default function LoginPage({
+  loginAction,
+  initialError = null,
+}: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [notice, setNotice] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

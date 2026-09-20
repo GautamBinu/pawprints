@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Petition } from "@/types/petition";
 import { Separator } from "@/components/ui/separator";
 import { PetitionStatusChip } from "@/lib/petition-status";
+import { rememberPetitionPreview } from "@/lib/petition-preview";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 import { PetitionTimeline } from "./PetitionTimeline";
 import { ReviewActionBox } from "./ReviewActionBox";
@@ -28,6 +29,13 @@ export function PetitionDetail({
 }: PetitionDetailProps) {
   const canManageReviewers =
     isSuperAdmin || hasPermission(permissions, PERMISSIONS.MANAGE_REVIEWERS);
+
+  // Overwrite the preview the list row stashed with the fetched petition, and
+  // again after every router.refresh() — approvals and category edits land
+  // here as a new prop, so the next visit's loading state reflects them.
+  useEffect(() => {
+    rememberPetitionPreview(petition);
+  }, [petition]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">

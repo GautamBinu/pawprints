@@ -199,12 +199,14 @@ export interface ReviewPool {
 /**
  * The reviewer lists, one per stage, as maintained in the admin panel.
  *
- * Readable by any reviewer — the petition page needs the staff list to offer
- * assignment, and the progress panel needs to explain who a stage is waiting
- * on. Only superadmins can change them.
+ * Superadmin only, like the panel that shows them. Every exported function
+ * here is an HTTP endpoint any signed-in user can call, and this one returns
+ * the full roster of privileged accounts with email addresses — a targeted
+ * phishing list if it were open to students. Per-petition assignment uses
+ * `getReviewCandidates`, which is scoped to one stage and gated separately.
  */
 export async function getReviewPools(): Promise<ReviewPool[]> {
-  await requireActor();
+  await requireSuperAdminActor();
 
   const rows = await prisma.reviewStageMember.findMany({
     include: { user: { select: { ...REVIEWER_SELECT, isSuperAdmin: true } } },
@@ -226,14 +228,15 @@ export async function getReviewPools(): Promise<ReviewPool[]> {
 }
 
 /**
- * Everyone who could be put on a reviewer list.
+ * Everyone who could be put on a reviewer list. Superadmin only — it is the
+ * complete staff directory, and only the admin panel has a use for it.
  *
- * Restricted to staff and superadmins because `/review` is gated on staff
- * access — adding anyone else would create a reviewer who cannot open the
- * page they are meant to review on.
+ * The result is restricted to staff and superadmins because `/review` is
+ * gated on staff access — adding anyone else would create a reviewer who
+ * cannot open the page they are meant to review on.
  */
 export async function getPoolCandidates(): Promise<ReviewCandidate[]> {
-  await requireActor();
+  await requireSuperAdminActor();
 
   const users = await prisma.user.findMany({
     where: {
