@@ -10,6 +10,7 @@ import { Petition, PetitionStatus } from "../../types/petition";
 import Link from "next/link";
 import { Badge } from "../ui/badge";
 import { PetitionStatusChip } from "@/lib/petition-status";
+import { CategoryBadge } from "@/lib/category-colors";
 import { Button } from "../ui/button";
 import { ButtonGroup } from "../ui/button-group";
 import { Separator } from "../ui/separator";
@@ -1224,13 +1225,11 @@ const PetitionPageClient: React.FC<PetitionPageClientProps> = ({
               <div className="mb-8 border-b pb-4">
                 <div className="flex flex-wrap gap-2 mb-4">
                   {petition.tags.map((tag) => (
-                    <Badge
+                    <CategoryBadge
                       key={tag.id}
-                      variant="secondary"
+                      name={tag.name}
                       className="text-base"
-                    >
-                      {tag.name}
-                    </Badge>
+                    />
                   ))}
                 </div>
                 <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">

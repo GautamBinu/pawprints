@@ -18,7 +18,7 @@ import { prisma } from "@/lib/prisma";
 import { logAction } from "@/lib/audit";
 import { createNotification, createNotifications } from "@/lib/notifications";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
-import { PETITION_TIERS } from "@/lib/constants";
+import { PETITION_CATEGORIES, PETITION_TIERS } from "@/lib/constants";
 import {
   PetitionStatus,
   ReviewDecision,
@@ -31,6 +31,7 @@ import {
   stageAudience,
   toReviewerRef,
 } from "@/lib/review-state";
+import { settleReview } from "@/lib/review-settle";
 import {
   REVIEW_STAGES,
   evaluateReview,
@@ -727,123 +728,57 @@ async function notifyIfOneApprovalLeft(
 }
 
 /**
- * Re-evaluates the pipeline and applies whatever it implies: advance the
- * stored stage pointer, and publish once every stage is satisfied.
+ * Changes the category on a petition at any stage, published included.
  *
- * Called after anything that could change the outcome — a review, a
- * withdrawal, an unassignment — so publication is never a separate button
- * someone has to remember to press.
+ * Split from `setPetitionClassification` because tier is not safe to touch
+ * after publication — it resets the signature target under people who have
+ * already signed — whereas a category is only a label and a filter. Nothing
+ * about a live petition depends on it.
  */
-async function settleReview(petitionId: number, actor: Actor) {
+export async function setPetitionCategory(
+  petitionId: number,
+  categoryName: string,
+) {
+  const actor = await requireActor();
+  if (!actorCan(actor, PERMISSIONS.APPROVE)) {
+    throw new Error("Unauthorized: Insufficient permissions");
+  }
+
+  const name = categoryName?.trim();
+  if (!name) throw new Error("Category is required");
+  if (!(PETITION_CATEGORIES as readonly string[]).includes(name)) {
+    throw new Error("Unknown category");
+  }
+
   const petition = await prisma.petition.findUnique({
     where: { id: petitionId },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      reviewStage: true,
-      authorId: true,
-    },
+    select: { id: true, tags: { select: { name: true } } },
   });
-  if (!petition || petition.status !== PetitionStatus.NeedsReview) return;
+  if (!petition) throw new Error("Petition not found");
 
-  const state = await loadReviewState(petitionId);
-  const progress = evaluateReview(
-    petition.reviewStage,
-    state.reviews,
-    state.assignments,
-  );
-
-  const nextStage = progress.currentIndex ?? REVIEW_STAGES.length;
-
-  if (!progress.complete) {
-    if (nextStage !== petition.reviewStage) {
-      await prisma.petition.update({
-        where: { id: petitionId },
-        data: { reviewStage: nextStage },
-      });
-
-      // Only on the way forward. Falling back to an earlier stage — a
-      // withdrawn approval, a late changes request — is not news the next
-      // stage needs.
-      if (nextStage > petition.reviewStage) {
-        const stage = REVIEW_STAGES[nextStage];
-        const audience = await stageAudience(petitionId, nextStage);
-        await createNotifications(
-          audience.filter((id) => id !== actor.id),
-          `Petition ready for ${stage.name}`,
-          `"${petition.title}" cleared ${
-            REVIEW_STAGES[nextStage - 1]?.name ?? "the previous stage"
-          } and is now waiting on ${stage.name}.`,
-          "REVIEW",
-          petitionId,
-        );
-
-        if (stage.requiresAssignment && audience.length === 0) {
-          // Nobody to tell, and the stage cannot move until that changes.
-          await notifyAssignmentNeeded(petitionId, petition.title, stage.name);
-        }
-      }
-    }
-    return;
-  }
+  const before = petition.tags.map((tag) => tag.name).join(", ") || "none";
+  if (before === name) return;
 
   await prisma.petition.update({
     where: { id: petitionId },
-    data: { status: PetitionStatus.Published, reviewStage: REVIEW_STAGES.length },
+    data: {
+      tags: {
+        set: [],
+        connectOrCreate: [{ where: { name }, create: { name } }],
+      },
+    },
   });
 
   await logAction(
-    "PUBLISH_AFTER_REVIEW",
-    { petitionId, title: petition.title },
+    "SET_PETITION_CATEGORY",
+    { petitionId, before, after: name },
     actor.id,
   );
 
-  await createNotification(
-    petition.authorId,
-    "Petition Approved",
-    `Your petition "${petition.title}" cleared review and is now live.`,
-    "REVIEW",
-    petitionId,
-  );
-
-  revalidatePath("/", "layout");
-}
-
-/**
- * A stage that requires an assignee has arrived with nobody on it. The people
- * who can unblock it are the ones holding MANAGE_REVIEWERS, so they are who
- * gets told — otherwise the petition sits there silently.
- */
-async function notifyAssignmentNeeded(
-  petitionId: number,
-  title: string,
-  stageName: string,
-) {
-  const managers = await prisma.user.findMany({
-    where: {
-      disabled: false,
-      OR: [
-        { isSuperAdmin: true },
-        { isStaff: true, permissions: { gt: 0 } },
-      ],
-    },
-    select: { id: true, permissions: true, isSuperAdmin: true },
-  });
-
-  await createNotifications(
-    managers
-      .filter(
-        (user) =>
-          user.isSuperAdmin ||
-          hasPermission(user.permissions, PERMISSIONS.MANAGE_REVIEWERS),
-      )
-      .map((user) => user.id),
-    `${stageName} needs an assignee`,
-    `"${title}" is waiting on ${stageName} but nobody has been assigned to it.`,
-    "REVIEW",
-    petitionId,
-  );
+  revalidatePath(`/review/${petitionId}`);
+  revalidatePath(`/petitions/${petitionId}`);
+  revalidatePath("/review");
+  revalidatePath("/");
 }
 
 /**

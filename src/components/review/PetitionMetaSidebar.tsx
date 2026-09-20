@@ -1,15 +1,26 @@
 "use client";
 
-import React from "react";
-import { Copy, ExternalLink, Users } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Copy, ExternalLink, Loader2, Pencil, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Petition } from "@/types/petition";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { setPetitionCategory } from "@/app/review-actions";
+import { PETITION_CATEGORIES } from "@/lib/constants";
 import { PETITION_THRESHOLD, PETITION_TIERS } from "@/lib/constants";
 import { formatDate, formatRelative } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { AssigneesPanel } from "./AssigneesPanel";
+import { CategoryBadge, getCategoryStyle } from "@/lib/category-colors";
 
 function Section({
   title,
@@ -73,12 +84,128 @@ function LinkRow({
   );
 }
 
+/**
+ * The category, with an inline editor for those allowed to change it.
+ *
+ * Available after publication too: a category is only a label and a filter,
+ * so correcting one on a live petition costs nothing. (Tier is different —
+ * it resets the signature target — and stays locked to the review stage.)
+ */
+function CategoryEditor({
+  petitionId,
+  current,
+  canEdit,
+}: {
+  petitionId: number;
+  current: string | null;
+  canEdit: boolean;
+}) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(current ?? "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setValue(current ?? "");
+  }, [current]);
+
+  const save = async () => {
+    if (!value || value === current) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await setPetitionCategory(petitionId, value);
+      toast.success("Category updated");
+      setEditing(false);
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error?.message || "Could not update the category");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="space-y-2">
+        <Select value={value} onValueChange={setValue} disabled={saving}>
+          <SelectTrigger className="h-8 w-full text-sm">
+            <SelectValue placeholder="Choose a category" />
+          </SelectTrigger>
+          <SelectContent>
+            {PETITION_CATEGORIES.map((entry) => (
+              <SelectItem key={entry} value={entry}>
+                <span className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "h-2 w-2 shrink-0 rounded-full",
+                      getCategoryStyle(entry).swatch,
+                    )}
+                    aria-hidden
+                  />
+                  {entry}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex gap-1.5">
+          <Button size="sm" className="h-7" onClick={save} disabled={saving || !value}>
+            {saving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              "Save"
+            )}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7"
+            disabled={saving}
+            onClick={() => {
+              setValue(current ?? "");
+              setEditing(false);
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start justify-between gap-2">
+      {current ? (
+        <CategoryBadge name={current} className="rounded-full" />
+      ) : (
+        <span className="text-muted-foreground">Not set</span>
+      )}
+      {canEdit && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          aria-label="Change category"
+          className="-m-1 shrink-0 rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function PetitionMetaSidebar({
   petition,
   canManageReviewers = false,
+  canClassify = false,
 }: {
   petition: Petition;
   canManageReviewers?: boolean;
+  /** May change the category — at any stage, published included. */
+  canClassify?: boolean;
 }) {
   const threshold = petition.targetSignatures || PETITION_THRESHOLD;
   const progress = Math.min((petition.signatures / threshold) * 100, 100);
@@ -108,19 +235,11 @@ export function PetitionMetaSidebar({
       </Section>
 
       <Section title="Category">
-        {petition.tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {petition.tags.map((tag) => (
-              <Badge key={tag.id} variant="secondary" className="rounded-full">
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          <span className="text-muted-foreground">
-            None — set it when approving
-          </span>
-        )}
+        <CategoryEditor
+          petitionId={petition.id}
+          current={petition.tags[0]?.name ?? null}
+          canEdit={canClassify}
+        />
       </Section>
 
       <Section title="Tier">

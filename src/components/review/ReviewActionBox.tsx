@@ -19,7 +19,9 @@ import { toast } from "sonner";
 import { Petition, PetitionStatus } from "@/types/petition";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -99,6 +101,45 @@ const formats = [
   "link",
 ];
 
+/** Actions that ask before acting. Reject has its own dialog with a typed phrase. */
+type ConfirmKind = "approve" | "return" | "override" | "unpublish";
+
+/**
+ * Exact phrase required to reject. Rejection is the one decision here with no
+ * undo the author can trigger, so it costs a deliberate keystroke or twelve.
+ */
+const REJECT_PHRASE = "delete this petition";
+
+const CONFIRM_COPY: Record<
+  ConfirmKind,
+  { title: string; body: string; action: string; destructive: boolean }
+> = {
+  approve: {
+    title: "Approve this petition?",
+    body: "",
+    action: "Approve",
+    destructive: false,
+  },
+  return: {
+    title: "Return to the author?",
+    body: "They are notified and asked to revise. When they resubmit, every approval so far is cleared and review starts again from the first stage.",
+    action: "Return to author",
+    destructive: false,
+  },
+  override: {
+    title: "Publish now, skipping review?",
+    body: "Bypasses every remaining stage and puts the petition live immediately. This is logged as a superadmin override.",
+    action: "Publish now",
+    destructive: false,
+  },
+  unpublish: {
+    title: "Take this petition down?",
+    body: "It disappears from the site straight away. Signatures already collected are kept.",
+    action: "Take down",
+    destructive: true,
+  },
+};
+
 interface ReviewActionBoxProps {
   petition: Petition;
   permissions: number;
@@ -158,6 +199,9 @@ export function ReviewActionBox({
   const [responseOpen, setResponseOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectPhrase, setRejectPhrase] = useState("");
+  /** Which non-reject action is awaiting a yes. */
+  const [confirm, setConfirm] = useState<ConfirmKind | null>(null);
   const [responseContent, setResponseContent] = useState("");
   const [updateContent, setUpdateContent] = useState("");
   const [changesOpen, setChangesOpen] = useState(false);
@@ -182,6 +226,8 @@ export function ReviewActionBox({
       setResponseOpen(false);
       setUpdateOpen(false);
       setRejectOpen(false);
+      setRejectPhrase("");
+      setConfirm(null);
       setChangesOpen(false);
       setResponseContent("");
       setUpdateContent("");
@@ -221,6 +267,34 @@ export function ReviewActionBox({
     (isSuperAdmin ||
       (onStageList &&
         (!currentStage.stage.requiresAssignment || isAssignedHere)));
+
+  // Whether the caller's approval would be the one that finishes review. Run
+  // the same evaluator the server uses, against the reviews as they would be
+  // with this approval recorded — so the dialog can say "this publishes it"
+  // only when that is actually true.
+  const willPublish = (() => {
+    if (!currentStage || !currentUserId) return false;
+    const others = (petition.reviews ?? []).filter(
+      (entry) =>
+        !(entry.stage === currentStage.index && entry.reviewer.id === currentUserId),
+    );
+    const hypothetical = evaluateReview(
+      petition.review_stage ?? 0,
+      [
+        ...others,
+        {
+          id: -1,
+          stage: currentStage.index,
+          decision: "APPROVE",
+          comment: null,
+          created_at: new Date().toISOString(),
+          reviewer: { id: currentUserId, name: "" },
+        },
+      ],
+      petition.assignments ?? [],
+    );
+    return hypothetical.complete;
+  })();
 
   // Nothing to hide behind a menu for a plain reviewer with none of these
   // permissions, so the trigger does not appear at all.
@@ -440,13 +514,7 @@ export function ReviewActionBox({
                     <Button
                       className="bg-emerald-600 text-white hover:bg-emerald-700"
                       disabled={myReview?.decision === "APPROVE" || busy !== null}
-                      onClick={() =>
-                        run(
-                          "approve",
-                          () => submitReview(petition.id, "APPROVE"),
-                          "Approval recorded",
-                        )
-                      }
+                      onClick={() => setConfirm("approve")}
                     >
                       {busy === "approve" ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -498,13 +566,7 @@ export function ReviewActionBox({
                     variant="outline"
                     className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                     disabled={!can(PERMISSIONS.UNPUBLISH) || busy !== null}
-                    onClick={() =>
-                      run(
-                        "unpublish",
-                        () => unpublishPetition(petition.id),
-                        "Petition taken down",
-                      )
-                    }
+                    onClick={() => setConfirm("unpublish")}
                   >
                     {busy === "unpublish" ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -531,15 +593,7 @@ export function ReviewActionBox({
                     <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuLabel>Other decisions</DropdownMenuLabel>
                       {can(PERMISSIONS.RETURN) && (
-                        <DropdownMenuItem
-                          onSelect={() =>
-                            run(
-                              "return",
-                              () => returnPetition(petition.id),
-                              "Returned for changes",
-                            )
-                          }
-                        >
+                        <DropdownMenuItem onSelect={() => setConfirm("return")}>
                           <Undo2 className="mr-2 h-4 w-4" />
                           Return to author
                         </DropdownMenuItem>
@@ -561,18 +615,7 @@ export function ReviewActionBox({
                           </DropdownMenuLabel>
                           <DropdownMenuItem
                             disabled={!category}
-                            onSelect={() =>
-                              run(
-                                "override",
-                                () =>
-                                  approvePetition(
-                                    petition.id,
-                                    Number(tier),
-                                    category,
-                                  ),
-                                "Published, skipping review",
-                              )
-                            }
+                            onSelect={() => setConfirm("override")}
                           >
                             <ShieldCheck className="mr-2 h-4 w-4" />
                             Publish now, skip review
@@ -753,7 +796,97 @@ export function ReviewActionBox({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+      <Dialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          {confirm && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{CONFIRM_COPY[confirm].title}</DialogTitle>
+                <DialogDescription>
+                  {confirm === "approve"
+                    ? willPublish
+                      ? `Yours is the last approval needed. Approving publishes "${petition.title}" immediately and notifies the author and every subscriber.`
+                      : `Records your approval for ${currentStage?.stage.name ?? "this stage"}. ${
+                          currentStage && currentStage.approvalsRemaining > 1
+                            ? `${currentStage.approvalsRemaining - 1} more will still be needed.`
+                            : "Others assigned to this stage still have to approve."
+                        }`
+                    : CONFIRM_COPY[confirm].body}
+                </DialogDescription>
+              </DialogHeader>
+              {confirm === "approve" && willPublish && (
+                <Alert>
+                  <ShieldCheck className="h-4 w-4" />
+                  <AlertDescription>
+                    This is the final sign-off. Once published, the petition
+                    is live on the site and open for signatures.
+                  </AlertDescription>
+                </Alert>
+              )}
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setConfirm(null)}
+                  disabled={busy !== null}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant={CONFIRM_COPY[confirm].destructive ? "destructive" : "default"}
+                  className={
+                    confirm === "approve"
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                      : undefined
+                  }
+                  disabled={busy !== null}
+                  onClick={() => {
+                    if (confirm === "approve") {
+                      run(
+                        "approve",
+                        () => submitReview(petition.id, "APPROVE"),
+                        willPublish ? "Approved and published" : "Approval recorded",
+                      );
+                    } else if (confirm === "return") {
+                      run(
+                        "return",
+                        () => returnPetition(petition.id),
+                        "Returned for changes",
+                      );
+                    } else if (confirm === "override") {
+                      run(
+                        "override",
+                        () => approvePetition(petition.id, Number(tier), category),
+                        "Published, skipping review",
+                      );
+                    } else if (confirm === "unpublish") {
+                      run(
+                        "unpublish",
+                        () => unpublishPetition(petition.id),
+                        "Petition taken down",
+                      );
+                    }
+                  }}
+                >
+                  {busy !== null && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {confirm === "approve" && willPublish
+                    ? "Approve and publish"
+                    : CONFIRM_COPY[confirm].action}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={rejectOpen}
+        onOpenChange={(open) => {
+          setRejectOpen(open);
+          if (!open) setRejectPhrase("");
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Reject this petition?</DialogTitle>
@@ -762,6 +895,21 @@ export function ReviewActionBox({
               it only needs changes, return it instead.
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reject-phrase">
+              Type{" "}
+              <span className="font-mono font-semibold">{REJECT_PHRASE}</span>{" "}
+              to confirm
+            </Label>
+            <Input
+              id="reject-phrase"
+              value={rejectPhrase}
+              onChange={(event) => setRejectPhrase(event.target.value)}
+              placeholder={REJECT_PHRASE}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
               variant="ghost"
@@ -779,7 +927,10 @@ export function ReviewActionBox({
                   "Petition rejected",
                 )
               }
-              disabled={busy !== null}
+              disabled={
+                busy !== null ||
+                rejectPhrase.trim().toLowerCase() !== REJECT_PHRASE
+              }
             >
               {busy === "reject" && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

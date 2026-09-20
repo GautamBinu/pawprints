@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, Inbox } from "lucide-react";
 import { Petition, PetitionStatus } from "@/types/petition";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDateTime, formatRelative } from "@/lib/dates";
 import { SignatureMeter } from "./SignatureMeter";
+import { CategoryBadge } from "@/lib/category-colors";
 import { cn } from "@/lib/utils";
 import { PETITION_CATEGORIES, PETITION_THRESHOLD } from "@/lib/constants";
 import {
@@ -259,13 +259,11 @@ function PetitionRow({ petition }: { petition: Petition }) {
               className="px-2 py-0 text-[11px] font-normal"
             />
             {petition.tags.map((tag) => (
-              <Badge
+              <CategoryBadge
                 key={tag.id}
-                variant="outline"
-                className="h-5 rounded-full px-2 text-[11px] font-normal"
-              >
-                {tag.name}
-              </Badge>
+                name={tag.name}
+                className="h-5 rounded-full px-2 text-[11px]"
+              />
             ))}
           </div>
 

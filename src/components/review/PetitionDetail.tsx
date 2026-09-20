@@ -72,6 +72,7 @@ export function PetitionDetail({
         <PetitionMetaSidebar
           petition={petition}
           canManageReviewers={canManageReviewers}
+          canClassify={isSuperAdmin || hasPermission(permissions, PERMISSIONS.APPROVE)}
         />
       </div>
     </div>

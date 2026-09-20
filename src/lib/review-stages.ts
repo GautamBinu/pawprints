@@ -17,7 +17,8 @@ import {
  *
  * - `requiresAssignment: false` — the whole pool is eligible on every
  *   petition, and any `minApprovals` of them can pass it. No per-petition
- *   setup.
+ *   setup. (Student Government runs at one; it was three until the list was
+ *   small enough that three was a bottleneck, not a safeguard.)
  * - `requiresAssignment: true` — somebody has to be named on this particular
  *   petition first, and every person named has to approve.
  *
@@ -49,8 +50,8 @@ export const REVIEW_STAGES: ReviewStage[] = [
     key: "sg",
     name: "Student Government",
     description:
-      "Three members of the Student Government reviewer list have to approve. The list is the same for every petition.",
-    minApprovals: 3,
+      "Any one member of the Student Government reviewer list can approve. The list is the same for every petition.",
+    minApprovals: 1,
     requiresAssignment: false,
   },
   {
