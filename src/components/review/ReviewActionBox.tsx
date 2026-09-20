@@ -202,6 +202,8 @@ export function ReviewActionBox({
   const [rejectPhrase, setRejectPhrase] = useState("");
   /** Which non-reject action is awaiting a yes. */
   const [confirm, setConfirm] = useState<ConfirmKind | null>(null);
+  /** Ticked in the dialog when the action is an admin override. */
+  const [overrideAcknowledged, setOverrideAcknowledged] = useState(false);
   const [responseContent, setResponseContent] = useState("");
   const [updateContent, setUpdateContent] = useState("");
   const [changesOpen, setChangesOpen] = useState(false);
@@ -228,6 +230,7 @@ export function ReviewActionBox({
       setRejectOpen(false);
       setRejectPhrase("");
       setConfirm(null);
+      setOverrideAcknowledged(false);
       setChangesOpen(false);
       setResponseContent("");
       setUpdateContent("");
@@ -261,12 +264,20 @@ export function ReviewActionBox({
   // Being on the stage's reviewer list is what makes someone a reviewer. For
   // a stage that also requires assignment, the list is necessary but not
   // sufficient — this petition has to have named you. Authors never qualify.
-  const canReview =
-    !isAuthor &&
+  const normallyEligible =
     !!currentStage &&
-    (isSuperAdmin ||
-      (onStageList &&
-        (!currentStage.stage.requiresAssignment || isAssignedHere)));
+    onStageList &&
+    (!currentStage.stage.requiresAssignment || isAssignedHere);
+  const canReview = !isAuthor && !!currentStage && (isSuperAdmin || normallyEligible);
+  // A superadmin reviewing a stage they are not on the list for (or not
+  // assigned to) is acting on someone else's behalf. The button says so, the
+  // dialog asks twice, and the server logs it as an override.
+  const isAdminOverride = canReview && isSuperAdmin && !normallyEligible;
+  const overrideReason = !currentStage
+    ? ""
+    : !onStageList
+      ? `You are not on the ${currentStage.stage.name} reviewer list.`
+      : `You are not assigned to this petition for ${currentStage.stage.name}.`;
 
   // Whether the caller's approval would be the one that finishes review. Run
   // the same evaluator the server uses, against the reviews as they would be
@@ -512,18 +523,28 @@ export function ReviewActionBox({
                 {pending && canReview && currentStage && (
                   <>
                     <Button
-                      className="bg-emerald-600 text-white hover:bg-emerald-700"
+                      className={
+                        isAdminOverride
+                          ? "border border-amber-500/60 bg-amber-500/10 text-amber-800 hover:bg-amber-500/20 dark:text-amber-300"
+                          : "bg-emerald-600 text-white hover:bg-emerald-700"
+                      }
+                      variant={isAdminOverride ? "outline" : "default"}
                       disabled={myReview?.decision === "APPROVE" || busy !== null}
                       onClick={() => setConfirm("approve")}
+                      title={isAdminOverride ? overrideReason : undefined}
                     >
                       {busy === "approve" ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : isAdminOverride ? (
+                        <ShieldCheck className="mr-2 h-4 w-4" />
                       ) : (
                         <CheckCircle2 className="mr-2 h-4 w-4" />
                       )}
                       {myReview?.decision === "APPROVE"
                         ? "You approved"
-                        : "Approve"}
+                        : isAdminOverride
+                          ? "Approve as admin"
+                          : "Approve"}
                     </Button>
 
                     {myReview ? (
@@ -553,9 +574,14 @@ export function ReviewActionBox({
                           setChangesComment("");
                           setChangesOpen(true);
                         }}
+                        title={isAdminOverride ? overrideReason : undefined}
                       >
-                        <TriangleAlert className="mr-2 h-4 w-4" />
-                        Request changes
+                        {isAdminOverride ? (
+                          <ShieldCheck className="mr-2 h-4 w-4 text-amber-600" />
+                        ) : (
+                          <TriangleAlert className="mr-2 h-4 w-4" />
+                        )}
+                        {isAdminOverride ? "Request changes as admin" : "Request changes"}
                       </Button>
                     )}
                   </>
@@ -632,9 +658,11 @@ export function ReviewActionBox({
                   ? "Taking it down removes it from the site but keeps its signatures."
                   : isAuthor
                     ? "You cannot review your own petition."
-                    : canReview
-                      ? "It publishes on its own once every stage passes."
-                      : currentStage?.needsAssignment
+                    : isAdminOverride
+                      ? `Admin override — ${overrideReason}`
+                      : canReview
+                        ? "It publishes on its own once every stage passes."
+                        : currentStage?.needsAssignment
                         ? "Nobody is assigned to this stage yet."
                         : onStageList
                           ? "You have not been assigned to this petition."
@@ -744,7 +772,13 @@ export function ReviewActionBox({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={changesOpen} onOpenChange={setChangesOpen}>
+      <Dialog
+        open={changesOpen}
+        onOpenChange={(open) => {
+          setChangesOpen(open);
+          if (!open) setOverrideAcknowledged(false);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Request changes</DialogTitle>
@@ -764,6 +798,28 @@ export function ReviewActionBox({
               rows={4}
             />
           </div>
+          {isAdminOverride && (
+            <Alert className="border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200 [&>svg]:text-amber-600">
+              <ShieldCheck className="h-4 w-4" />
+              <AlertDescription className="space-y-2">
+                <p>
+                  <span className="font-semibold">Superadmin override.</span>{" "}
+                  {overrideReason} This is flagged in the audit log.
+                </p>
+                <label className="flex cursor-pointer items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-amber-600"
+                    checked={overrideAcknowledged}
+                    onChange={(event) =>
+                      setOverrideAcknowledged(event.target.checked)
+                    }
+                  />
+                  <span>I understand this is an admin action.</span>
+                </label>
+              </AlertDescription>
+            </Alert>
+          )}
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
               variant="ghost"
@@ -785,7 +841,7 @@ export function ReviewActionBox({
                   "Changes requested",
                 )
               }
-              disabled={busy !== null}
+              disabled={busy !== null || (isAdminOverride && !overrideAcknowledged)}
             >
               {busy === "changes" && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -796,7 +852,15 @@ export function ReviewActionBox({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
+      <Dialog
+        open={confirm !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirm(null);
+            setOverrideAcknowledged(false);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           {confirm && (
             <>
@@ -814,6 +878,33 @@ export function ReviewActionBox({
                     : CONFIRM_COPY[confirm].body}
                 </DialogDescription>
               </DialogHeader>
+              {confirm === "approve" && isAdminOverride && (
+                <Alert className="border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200 [&>svg]:text-amber-600">
+                  <ShieldCheck className="h-4 w-4" />
+                  <AlertDescription className="space-y-2">
+                    <p>
+                      <span className="font-semibold">Superadmin override.</span>{" "}
+                      {overrideReason} This approval is recorded under your
+                      name and flagged as an override in the audit log.
+                    </p>
+                    <label className="flex cursor-pointer items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 accent-amber-600"
+                        checked={overrideAcknowledged}
+                        onChange={(event) =>
+                          setOverrideAcknowledged(event.target.checked)
+                        }
+                      />
+                      <span>
+                        I understand I am approving on behalf of{" "}
+                        {currentStage?.stage.name ?? "this stage"} without
+                        being one of its reviewers.
+                      </span>
+                    </label>
+                  </AlertDescription>
+                </Alert>
+              )}
               {confirm === "approve" && willPublish && (
                 <Alert>
                   <ShieldCheck className="h-4 w-4" />
@@ -838,7 +929,10 @@ export function ReviewActionBox({
                       ? "bg-emerald-600 text-white hover:bg-emerald-700"
                       : undefined
                   }
-                  disabled={busy !== null}
+                  disabled={
+                    busy !== null ||
+                    (confirm === "approve" && isAdminOverride && !overrideAcknowledged)
+                  }
                   onClick={() => {
                     if (confirm === "approve") {
                       run(

@@ -130,7 +130,7 @@ const PetitionCard: React.FC<PetitionCardProps> = ({
       </CardContent>
 
       <CardFooter className="flex flex-col items-start gap-4 pb-6">
-        <CategoryBadge name={category} />
+        <CategoryBadge name={category} className="px-3 py-1 text-sm" />
       </CardFooter>
       <div className="absolute bottom-0 left-0 w-full h-2 bg-muted">
         <div

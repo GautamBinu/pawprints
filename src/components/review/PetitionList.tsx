@@ -17,15 +17,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDateTime, formatRelative } from "@/lib/dates";
 import { SignatureMeter } from "./SignatureMeter";
+import { ReviewStagePips } from "./ReviewStagePips";
 import { CategoryBadge } from "@/lib/category-colors";
 import { rememberPetitionPreview } from "@/lib/petition-preview";
 import { cn } from "@/lib/utils";
 import { PETITION_CATEGORIES, PETITION_THRESHOLD } from "@/lib/constants";
-import {
-  PETITION_STATE_LIST,
-  PetitionStateIcon,
-  PetitionStatusChip,
-} from "@/lib/petition-status";
+import { PetitionStateIcon, PetitionStatusChip } from "@/lib/petition-status";
 import {
   ParsedQuery,
   hasQualifier,
@@ -97,43 +94,16 @@ export function PetitionList({
     setVisible(PAGE_SIZE);
   }, [query, sort, petitions.length]);
 
-  const countFor = (status: PetitionStatus) =>
-    allPetitions.filter((petition) => petition.status === status).length;
-
   const activeCategories = parsed.qualifiers.category;
 
   return (
     <div className="overflow-hidden rounded-lg border">
       <div className="flex flex-col gap-2 border-b bg-muted/40 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-        {/* State toggles, mirroring the Open / Closed pair on a repo's issue
-            list — the two counts a reviewer actually triages by. */}
-        <div className="-mx-1 flex items-center gap-1 overflow-x-auto px-1">
-          {PETITION_STATE_LIST.map(({ status, meta }) => {
-            const active = hasQualifier(parsed, "state", meta.key);
-            return (
-              <button
-                key={meta.key}
-                type="button"
-                onClick={() => onQueryChange(toggleQualifier(query, "state", meta.key))}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm whitespace-nowrap transition-colors",
-                  active
-                    ? "font-semibold text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <PetitionStateIcon
-                  status={status}
-                  className={cn("h-3.5 w-3.5", !active && "opacity-70")}
-                />
-                {meta.label}
-                <span className="rounded-full bg-muted-foreground/15 px-1.5 text-xs tabular-nums">
-                  {countFor(status)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <p className="text-sm text-muted-foreground tabular-nums">
+          {petitions.length === allPetitions.length
+            ? `${petitions.length} ${petitions.length === 1 ? "petition" : "petitions"}`
+            : `${petitions.length} of ${allPetitions.length}`}
+        </p>
 
         <div className="flex items-center gap-1">
           <DropdownMenu>
@@ -251,41 +221,61 @@ function PetitionRow({ petition }: { petition: Petition }) {
       >
         <PetitionStateIcon status={petition.status} className="mt-0.5 shrink-0" />
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-sm font-semibold break-words hover:text-[#F76902] sm:text-base">
-              {petition.title}
-            </span>
-            <PetitionStatusChip
-              status={petition.status}
-              className="px-2 py-0 text-[11px] font-normal"
-            />
-            {petition.tags.map((tag) => (
-              <CategoryBadge
-                key={tag.id}
-                name={tag.name}
-                className="h-5 rounded-full px-2 text-[11px]"
+        {/* Below `sm` the status column drops under the text instead of
+            sharing the row with it. A `shrink-0` column beside a long title
+            on a phone squeezes the title into a few words per line. */}
+        <div className="min-w-0 flex-1 sm:flex sm:items-start sm:gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-sm font-semibold break-words hover:text-[#F76902] sm:text-base">
+                {petition.title}
+              </span>
+              <PetitionStatusChip
+                status={petition.status}
+                className="px-2 py-0 text-[11px] font-normal"
               />
-            ))}
+              {petition.tags.map((tag) => (
+                <CategoryBadge
+                  key={tag.id}
+                  name={tag.name}
+                  className="h-5 rounded-full px-2 text-[11px]"
+                />
+              ))}
+            </div>
+
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+              <span>
+                #{petition.id} · opened{" "}
+                <time
+                  dateTime={petition.created_at}
+                  title={formatDateTime(petition.created_at)}
+                >
+                  {formatRelative(petition.created_at)}
+                </time>{" "}
+                by {petition.author}
+              </span>
+            </p>
           </div>
 
-          <p className="mt-1 text-xs text-muted-foreground">
-            #{petition.id} · opened{" "}
-            <time
-              dateTime={petition.created_at}
-              title={formatDateTime(petition.created_at)}
-            >
-              {formatRelative(petition.created_at)}
-            </time>{" "}
-            by {petition.author}
-          </p>
+          {/* Status column: where it is in review, then how many have signed.
+              A left-aligned row under the byline on phones; a right-aligned
+              stack beside it from `sm` up. */}
+          <div className="mt-2 flex items-center justify-between gap-x-4 gap-y-1.5 sm:mt-0 sm:shrink-0 sm:flex-col sm:items-end sm:justify-start sm:gap-1.5">
+            {/* Pips left, meter pinned right on phones — otherwise a
+                published row with no pips leaves the meter floating at the
+                left edge under the byline. */}
+            {petition.status === PetitionStatus.NeedsReview ? (
+              <ReviewStagePips petition={petition} />
+            ) : (
+              <span className="sm:hidden" aria-hidden />
+            )}
+            <SignatureMeter
+              signatures={petition.signatures}
+              target={threshold}
+              className="shrink-0"
+            />
+          </div>
         </div>
-
-        <SignatureMeter
-          signatures={petition.signatures}
-          target={threshold}
-          className="shrink-0"
-        />
       </Link>
     </li>
   );

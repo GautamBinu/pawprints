@@ -61,6 +61,58 @@ export function quoteIfNeeded(value: string) {
   return /\s/.test(value) ? `"${value}"` : value;
 }
 
+export type QuerySegment =
+  | { kind: "qualifier"; text: string; key: QualifierKey }
+  | { kind: "text"; text: string }
+  | { kind: "space"; text: string };
+
+/**
+ * The raw query split into runs that preserve every character, for painting
+ * qualifiers with a background behind the input. Unlike `tokenize`, nothing
+ * is dropped or trimmed — the mirror has to line up with the input exactly,
+ * so a double space stays a double space.
+ */
+export function segmentQuery(raw: string): QuerySegment[] {
+  const segments: QuerySegment[] = [];
+  let current = "";
+  let quoted = false;
+
+  const flush = () => {
+    if (!current) return;
+    const separator = current.indexOf(":");
+    const key = separator > 0 ? current.slice(0, separator).toLowerCase() : "";
+    const value = separator > 0 ? current.slice(separator + 1) : "";
+    if (QUALIFIER_KEYS.includes(key as QualifierKey) && value) {
+      segments.push({ kind: "qualifier", text: current, key: key as QualifierKey });
+    } else {
+      segments.push({ kind: "text", text: current });
+    }
+    current = "";
+  };
+
+  for (const char of raw ?? "") {
+    if (char === '"') {
+      quoted = !quoted;
+      current += char;
+      continue;
+    }
+    if (!quoted && /\s/.test(char)) {
+      flush();
+      const last = segments[segments.length - 1];
+      if (last && last.kind === "space") {
+        last.text += char;
+      } else {
+        segments.push({ kind: "space", text: char });
+      }
+      continue;
+    }
+    current += char;
+  }
+  flush();
+
+  return segments;
+}
+
 export function parseSearchQuery(raw: string): ParsedQuery {
   const qualifiers = EMPTY_QUALIFIERS();
   const text: string[] = [];

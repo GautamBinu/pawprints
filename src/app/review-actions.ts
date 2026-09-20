@@ -576,6 +576,10 @@ export async function submitReview(
     (entry) => entry.assignee.id === actor.id,
   );
 
+  const normallyEligible =
+    pool.has(actor.id) &&
+    (!REVIEW_STAGES[stageIndex].requiresAssignment || isAssigned);
+
   if (!actor.isSuperAdmin) {
     if (!pool.has(actor.id)) {
       throw new Error(
@@ -586,6 +590,10 @@ export async function submitReview(
       throw new Error("You have not been assigned to this petition");
     }
   }
+
+  // Computed here, not trusted from the client: whether this superadmin is
+  // reviewing a stage they would not otherwise be allowed to touch.
+  const isAdminOverride = actor.isSuperAdmin && !normallyEligible;
 
   await prisma.petitionReview.upsert({
     where: {
@@ -606,10 +614,24 @@ export async function submitReview(
   });
 
   await logAction(
-    decision === "APPROVE" ? "REVIEW_APPROVE" : "REVIEW_REQUEST_CHANGES",
+    isAdminOverride
+      ? decision === "APPROVE"
+        ? "REVIEW_APPROVE_ADMIN_OVERRIDE"
+        : "REVIEW_REQUEST_CHANGES_ADMIN_OVERRIDE"
+      : decision === "APPROVE"
+        ? "REVIEW_APPROVE"
+        : "REVIEW_REQUEST_CHANGES",
     {
       petitionId,
       stage: REVIEW_STAGES[stageIndex]?.name ?? stageIndex,
+      ...(isAdminOverride
+        ? {
+            adminOverride: true,
+            reason: !pool.has(actor.id)
+              ? "not on reviewer list"
+              : "not assigned to petition",
+          }
+        : {}),
     },
     actor.id,
   );

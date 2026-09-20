@@ -1,6 +1,7 @@
 import React from "react";
-import { Clock, Inbox, UserCheck } from "lucide-react";
+import { CircleDot, Clock, Inbox, UserCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { REVIEW_STAGES } from "@/lib/review-stages";
 
 /**
  * The review list's loading state. `/review` fetches every petition and then
@@ -17,29 +18,70 @@ export default function ReviewLoading() {
       aria-busy="true"
     >
       <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
-        <nav className="-mx-4 flex shrink-0 gap-1 overflow-x-auto px-4 pb-1 lg:mx-0 lg:w-56 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
+        <div className="flex shrink-0 flex-col gap-6 lg:w-56">
           {[
-            { label: "Petitions", icon: Inbox, active: true },
-            { label: "Assigned to me", icon: UserCheck, active: false },
-            { label: "Recent activity", icon: Clock, active: false },
-          ].map(({ label, icon: Icon, active }) => (
-            <div
-              key={label}
-              className={`relative flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap lg:w-full ${
-                active
-                  ? "bg-muted font-semibold text-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {active && (
-                <span className="absolute left-0 top-1/2 hidden h-4 w-1 -translate-y-1/2 rounded-full bg-[#F76902] lg:block" />
+            {
+              title: null,
+              rows: [
+                { label: "Petitions", icon: Inbox, active: true },
+                { label: "Assigned to me", icon: UserCheck, active: false },
+                { label: "Recent activity", icon: Clock, active: false },
+              ],
+            },
+            {
+              title: "Awaiting review from",
+              rows: REVIEW_STAGES.map((stage) => ({
+                label: stage.name,
+                icon: CircleDot,
+                active: false,
+              })),
+            },
+          ].map((section, index) => (
+            <div key={index}>
+              {section.title && (
+                <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {section.title}
+                </p>
               )}
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="flex-1 text-left">{label}</span>
-              <Skeleton className="h-4 w-6 rounded-full" />
+              <div className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
+                {section.rows.map(({ label, icon: Icon, active }) => (
+                  <div
+                    key={label}
+                    className={`relative flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap lg:w-full ${
+                      active
+                        ? "bg-muted font-semibold text-foreground"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {active && (
+                      <span className="absolute left-0 top-1/2 hidden h-4 w-1 -translate-y-1/2 rounded-full bg-[#F76902] lg:block" />
+                    )}
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 text-left">{label}</span>
+                    <Skeleton className="h-4 w-6 rounded-full" />
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
-        </nav>
+          <div>
+            <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              State
+            </p>
+            <div className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm lg:w-full"
+                >
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="ml-auto h-4 w-6 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         <div className="min-w-0 flex-1 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

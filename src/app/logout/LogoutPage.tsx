@@ -1,4 +1,7 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
+import { clientLogout } from "./client-logout";
 import {
   Card,
   CardContent,
@@ -7,11 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-interface LogoutPageProps {
-  logoutAction: () => void;
-}
-
-export default function LogoutPage({ logoutAction }: LogoutPageProps) {
+export default function LogoutPage() {
   return (
     <div>
       <div className="min-h-[80vh] flex items-center justify-center p-4">
@@ -27,11 +26,13 @@ export default function LogoutPage({ logoutAction }: LogoutPageProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form action={logoutAction}>
-              <Button type="submit" variant="destructive" className="w-full">
-                Click here to sign out
-              </Button>
-            </form>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => clientLogout()}
+            >
+              Click here to sign out
+            </Button>
           </CardContent>
         </Card>
       </div>

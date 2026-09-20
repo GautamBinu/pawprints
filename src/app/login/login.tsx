@@ -3,6 +3,7 @@
 import { refreshCookiesWithIdToken } from "next-firebase-auth-edge/lib/next/cookies";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getAdminAuth } from "@/lib/firebase-admin";
 import {
@@ -105,6 +106,14 @@ export async function loginAction(
     await cookies(),
     authConfig,
   );
+
+  // The root layout is what reads the session and feeds AuthProvider, and
+  // layouts are not re-rendered on a soft navigation — only the page segment
+  // is. Without this, the redirect below reuses the layout the client cached
+  // while signed out, and the header keeps showing "Log In" even though every
+  // server action already sees the new cookie. Revalidating from the root
+  // makes the redirect carry a fresh tree.
+  revalidatePath("/", "layout");
 
   // A freshly issued or regenerated password is temporary — send the holder
   // straight to the page that makes them pick their own.

@@ -20,7 +20,7 @@ import { PETITION_THRESHOLD, PETITION_TIERS } from "@/lib/constants";
 import { formatDate, formatRelative } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { AssigneesPanel } from "./AssigneesPanel";
-import { CategoryBadge, getCategoryStyle } from "@/lib/category-colors";
+import { CategoryBadge } from "@/lib/category-colors";
 
 function Section({
   title,
@@ -137,16 +137,9 @@ function CategoryEditor({
           <SelectContent>
             {PETITION_CATEGORIES.map((entry) => (
               <SelectItem key={entry} value={entry}>
-                <span className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "h-2 w-2 shrink-0 rounded-full",
-                      getCategoryStyle(entry).swatch,
-                    )}
-                    aria-hidden
-                  />
-                  {entry}
-                </span>
+                {/* The same component the sidebar and cards render, so what
+                    is picked here is exactly what appears everywhere else. */}
+                <CategoryBadge name={entry} className="rounded-full" />
               </SelectItem>
             ))}
           </SelectContent>

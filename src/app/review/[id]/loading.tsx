@@ -7,7 +7,11 @@ import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { PetitionStatusChip } from "@/lib/petition-status";
-import { readPetitionPreview, type PetitionPreview } from "@/lib/petition-preview";
+import {
+  readPetitionPreview,
+  readReviewListUrl,
+  type PetitionPreview,
+} from "@/lib/petition-preview";
 
 /**
  * Instant shell for the review page. Same reasoning as the public one: the
@@ -17,16 +21,18 @@ import { readPetitionPreview, type PetitionPreview } from "@/lib/petition-previe
 export default function ReviewPetitionLoading() {
   const params = useParams<{ id: string }>();
   const [preview, setPreview] = useState<PetitionPreview | null>(null);
+  const [backHref, setBackHref] = useState("/review");
 
   useEffect(() => {
     const id = Number(params?.id);
     if (Number.isInteger(id)) setPreview(readPetitionPreview(id));
+    setBackHref(readReviewListUrl());
   }, [params?.id]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8" aria-busy="true">
       <Link
-        href="/review"
+        href={backHref}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-3.5 w-3.5" />

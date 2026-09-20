@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import {
   Menu,
   LogOutIcon,
+  Plus,
   SettingsIcon,
   UserIcon,
   ShieldIcon,
@@ -45,8 +46,8 @@ import { useRouter } from "next/navigation";
 
 import { useMediaQuery } from "@/hooks/use-media-query";
 
-// Import logout action instead of going to the page
-import { logoutAction } from "@/app/logout/logout";
+// Client-first logout: clears the browser's Firebase state, then the cookie.
+import { clientLogout } from "@/app/logout/client-logout";
 
 interface HeaderProps {
   hasAdminAccess?: boolean;
@@ -122,18 +123,19 @@ const Header = ({ hasAdminAccess, isSuperAdmin }: HeaderProps) => {
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
-                <NavigationMenuItem>
-                  <NavigationMenuLink
-                    asChild
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-
-                      "bg-transparent text-white hover:bg-white/20 hover:text-white focus:bg-white/20 focus:text-white",
-                    )}
-                  >
-                    <Link href="/create">Create</Link>
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
+                {!user && (
+                  <NavigationMenuItem>
+                    <NavigationMenuLink
+                      asChild
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        "bg-transparent text-white hover:bg-white/20 hover:text-white focus:bg-white/20 focus:text-white",
+                      )}
+                    >
+                      <Link href="/create">Create</Link>
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                )}
 
                 <NavigationMenuItem>
                   <NavigationMenuLink
@@ -149,6 +151,22 @@ const Header = ({ hasAdminAccess, isSuperAdmin }: HeaderProps) => {
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
+
+            {user && (
+              // The one action the site exists for, so once signed in it
+              // reads as a button — placed with the account controls rather
+              // than among the nav links.
+              <Button
+                asChild
+                size="sm"
+                className="bg-white font-semibold text-[#F76902] shadow-sm hover:bg-orange-50"
+              >
+                <Link href="/create">
+                  <Plus className="h-4 w-4" />
+                  Create
+                </Link>
+              </Button>
+            )}
 
             <ModeToggle />
 
@@ -229,7 +247,7 @@ const Header = ({ hasAdminAccess, isSuperAdmin }: HeaderProps) => {
                     <DropdownMenuGroup>
                       <DropdownMenuItem
                         variant="destructive"
-                        onClick={() => logoutAction()}
+                        onClick={() => clientLogout()}
                       >
                         <LogOutIcon />
                         Log out
@@ -316,7 +334,7 @@ const Header = ({ hasAdminAccess, isSuperAdmin }: HeaderProps) => {
                     <DropdownMenuGroup>
                       <DropdownMenuItem
                         variant="destructive"
-                        onClick={() => logoutAction()}
+                        onClick={() => clientLogout()}
                       >
                         <LogOutIcon />
                         Log out
@@ -371,13 +389,24 @@ const Header = ({ hasAdminAccess, isSuperAdmin }: HeaderProps) => {
                   >
                     Browse
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNavigate("/create")}
-                    className="text-left text-lg font-medium hover:text-[#F76902] transition-colors"
-                  >
-                    Create
-                  </button>
+                  {user ? (
+                    <Button
+                      onClick={() => handleNavigate("/create")}
+                      className="w-full justify-start bg-[#F76902] text-lg font-medium text-white hover:bg-[#d55a02]"
+                      size="lg"
+                    >
+                      <Plus className="h-5 w-5" />
+                      Create a petition
+                    </Button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleNavigate("/create")}
+                      className="text-left text-lg font-medium hover:text-[#F76902] transition-colors"
+                    >
+                      Create
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleNavigate("/about")}

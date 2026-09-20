@@ -23,7 +23,9 @@ export interface PetitionPreview {
   status: number;
   signatures: number;
   targetSignatures: number;
+  tier: number;
   expires: string;
+  created_at: string;
 }
 
 export function toPetitionPreview(petition: Petition): PetitionPreview {
@@ -35,7 +37,9 @@ export function toPetitionPreview(petition: Petition): PetitionPreview {
     status: petition.status,
     signatures: petition.signatures,
     targetSignatures: petition.targetSignatures,
+    tier: petition.tier,
     expires: petition.expires,
+    created_at: petition.created_at,
   };
 }
 
@@ -60,5 +64,20 @@ export function readPetitionPreview(id: number): PetitionPreview | null {
     return parsed && parsed.id === id ? parsed : null;
   } catch {
     return null;
+  }
+}
+
+/** Where the review list was last left — filters, view and sort included. */
+export const REVIEW_LIST_URL_KEY = "pawprints:review-list-url";
+
+export function readReviewListUrl(): string {
+  if (typeof window === "undefined") return "/review";
+  try {
+    const saved = window.sessionStorage.getItem(REVIEW_LIST_URL_KEY);
+    // Only ever a same-origin path we wrote ourselves; anything else is
+    // ignored rather than trusted as a link target.
+    return saved && saved.startsWith("/review") ? saved : "/review";
+  } catch {
+    return "/review";
   }
 }

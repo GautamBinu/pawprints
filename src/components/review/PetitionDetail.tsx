@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Petition } from "@/types/petition";
 import { Separator } from "@/components/ui/separator";
 import { PetitionStatusChip } from "@/lib/petition-status";
-import { rememberPetitionPreview } from "@/lib/petition-preview";
+import { readReviewListUrl, rememberPetitionPreview } from "@/lib/petition-preview";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 import { PetitionTimeline } from "./PetitionTimeline";
 import { ReviewActionBox } from "./ReviewActionBox";
@@ -30,6 +30,13 @@ export function PetitionDetail({
   const canManageReviewers =
     isSuperAdmin || hasPermission(permissions, PERMISSIONS.MANAGE_REVIEWERS);
 
+  // Server-rendered as /review, then upgraded to the list URL with its
+  // filters once we can read sessionStorage.
+  const [backHref, setBackHref] = useState("/review");
+  useEffect(() => {
+    setBackHref(readReviewListUrl());
+  }, []);
+
   // Overwrite the preview the list row stashed with the fetched petition, and
   // again after every router.refresh() — approvals and category edits land
   // here as a new prop, so the next visit's loading state reflects them.
@@ -40,7 +47,7 @@ export function PetitionDetail({
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <Link
-        href="/review"
+        href={backHref}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-3.5 w-3.5" />

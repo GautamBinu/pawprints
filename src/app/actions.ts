@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getTokens } from "next-firebase-auth-edge";
 import { authConfig } from "./config/server-config";
 import { prisma } from "@/lib/prisma";
-import { PetitionStatus, Petition } from "@/types/petition";
+import { PetitionStatus, Petition, ReviewDecision } from "@/types/petition";
 import { z } from "zod";
 import sanitizeHtml from "sanitize-html";
 import {
@@ -157,6 +157,26 @@ export async function getAdminPetitions(): Promise<Petition[]> {
       author: true,
       response: true,
       updates: true,
+      // Enough for the list to evaluate each petition's review stage on the
+      // client — which stage it sits at, who has approved, who is assigned —
+      // without the comments and event history the detail page carries.
+      reviews: {
+        select: {
+          id: true,
+          stage: true,
+          decision: true,
+          createdAt: true,
+          reviewer: { select: { id: true, name: true, displayName: true, email: true } },
+        },
+      },
+      assignments: {
+        select: {
+          id: true,
+          stage: true,
+          createdAt: true,
+          assignee: { select: { id: true, name: true, displayName: true, email: true } },
+        },
+      },
     },
     orderBy: {
       createdAt: "desc",
@@ -194,6 +214,28 @@ export async function getAdminPetitions(): Promise<Petition[]> {
       author: u.author,
     })),
     old_id: p.oldId,
+    review_stage: p.reviewStage,
+    reviews: p.reviews.map((review) => ({
+      id: review.id,
+      stage: review.stage,
+      decision: review.decision as ReviewDecision,
+      comment: null,
+      created_at: review.createdAt.toISOString(),
+      reviewer: {
+        id: review.reviewer.id,
+        name: review.reviewer.displayName || review.reviewer.name || review.reviewer.email,
+      },
+    })),
+    assignments: p.assignments.map((entry) => ({
+      id: entry.id,
+      stage: entry.stage,
+      created_at: entry.createdAt.toISOString(),
+      assignee: {
+        id: entry.assignee.id,
+        name: entry.assignee.displayName || entry.assignee.name || entry.assignee.email,
+      },
+      assignedBy: null,
+    })),
   }));
 }
 
